@@ -1,21 +1,19 @@
 # Receitopédia
 
-## Estrutura
+## Build
+Para efetuar o build do projeto, execute o comando:
 
-- `pai` centraliza a configuração Maven.
-- `dominio-acervo`, `dominio-administracao`, `dominio-analise` e `dominio-compartilhado` organizam as camadas de domínio.
-- `aplicacao` reúne os casos de uso e `infraestrutura` concentra persistência, migrações e serviços técnicos.
-- `apresentacao-backend`, `apresentacao-frontend` e `apresentacao-vaadin` mantêm as entradas Spring Boot, Angular e Vaadin.
+`mvn clean install`
 
-## Compilar e executar
+A máquina onde o build será executado precisar conter:
 
-Com Java, Maven, Node.js, npm, Docker e Docker Compose instalados, rode na raiz:
+- Docker (build realizado com sucesso com a versão 28.5.1)
+- NodeJS (build realizado com sucesso com a versão v24.11.0)
+- NPM (build realizado com sucesso com a versão 11.6.2)
 
-```sh
-mvn clean install
-docker compose -f docker-compose-receitopedia.yml up
-```
+## Execução
+Após realizar o build, você pode executar o sistema com o comando:
 
-A aplicação fica em http://localhost:8080. O frontend inicial é uma estrutura Angular com roteamento preparado para as próximas telas.
+`docker compose -f docker-compose-sgb.yml up`
 
-Para compilar sem gerar a imagem Docker, use `mvn clean verify`. Para iniciar somente o PostgreSQL de desenvolvimento, use `docker compose up postgres`.
+Para acessar o sistema, visite o endereço http://localhost:8080
