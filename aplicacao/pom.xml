@@ -16,7 +16,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>receitopedia-dominio-acervo</artifactId>
+			<artifactId>receitopedia-dominio-receitas</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

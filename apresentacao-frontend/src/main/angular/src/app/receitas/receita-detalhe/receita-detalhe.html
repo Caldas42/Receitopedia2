@@ -1,0 +1,70 @@
+<a class="voltar" routerLink="/receitas">
+  <i class="bi bi-arrow-left" aria-hidden="true"></i> Todas as receitas
+</a>
+
+@if (carregando()) {
+  <p role="status">Carregando receita…</p>
+}
+@if (falha()) {
+  <p class="alert alert-danger" role="alert">{{ falha() }}</p>
+  @if (conflito()) {
+    <button class="btn btn-outline-secondary mb-3" type="button" (click)="carregar()">
+      Carregar versão atual
+    </button>
+  }
+}
+
+@if (carregando() ? null : receita(); as receitaAtual) {
+  <article aria-labelledby="titulo-receita">
+    <header class="cabecalho-pagina">
+      <h1 id="titulo-receita">{{ receitaAtual.dados.titulo }}</h1>
+      <div class="acoes">
+        <a class="btn btn-outline-secondary" [routerLink]="['/receitas', receitaAtual.id, 'editar']">
+          <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+        </a>
+        @if (!confirmando()) {
+          <button class="btn btn-outline-danger" type="button" (click)="confirmando.set(true)"
+                  [disabled]="conflito()">
+            Remover
+          </button>
+        }
+      </div>
+    </header>
+    @if (receitaAtual.dados.descricao) {
+      <p class="descricao-receita">{{ receitaAtual.dados.descricao }}</p>
+    }
+
+    @if (confirmando()) {
+      <div class="superficie confirmar-exclusao" role="group" aria-label="Confirmação de remoção">
+        <p>Remover esta receita? Essa ação é permanente.</p>
+        <div class="acoes">
+          <button class="btn btn-outline-secondary" type="button" [disabled]="removendo()"
+                  (click)="confirmando.set(false)">Cancelar</button>
+          <button class="btn btn-danger" type="button" [disabled]="removendo()"
+                  (click)="remover(receitaAtual)">
+            {{ removendo() ? 'Removendo…' : 'Confirmar remoção' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="grade-detalhe">
+      <section class="superficie" aria-labelledby="titulo-ingredientes">
+        <h2 id="titulo-ingredientes">Ingredientes</h2>
+        <ul class="itens-receita">
+          @for (ingrediente of receitaAtual.dados.ingredientes; track $index) {
+            <li>{{ ingrediente }}</li>
+          }
+        </ul>
+      </section>
+      <section class="superficie" aria-labelledby="titulo-preparo">
+        <h2 id="titulo-preparo">Modo de preparo</h2>
+        <ol class="itens-receita">
+          @for (etapa of receitaAtual.dados.etapas; track $index) {
+            <li>{{ etapa }}</li>
+          }
+        </ol>
+      </section>
+    </div>
+  </article>
+}

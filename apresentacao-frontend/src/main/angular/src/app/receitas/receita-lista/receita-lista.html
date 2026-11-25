@@ -1,0 +1,34 @@
+<section aria-labelledby="titulo-pagina">
+  <div class="cabecalho-pagina">
+    <h1 id="titulo-pagina">Receitas</h1>
+    <a class="btn btn-primary" routerLink="/receitas/nova">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i> Nova receita
+    </a>
+  </div>
+
+  @if (carregando()) {
+    <p role="status">Carregando receitas…</p>
+  } @else if (falha()) {
+    <div class="alert alert-danger" role="alert">Não foi possível carregar as receitas.</div>
+    <button class="btn btn-outline-secondary" type="button" (click)="carregar()">
+      Tentar novamente
+    </button>
+  } @else if (receitas().length === 0) {
+    <div class="superficie estado-vazio">
+      <i class="bi bi-journal-text" aria-hidden="true"></i>
+      <h2>Nenhuma receita cadastrada</h2>
+      <p>Adicione a primeira receita ao Receitopédia.</p>
+    </div>
+  } @else {
+    <ul class="grade-receitas list-unstyled">
+      @for (receita of receitas(); track receita.id) {
+        <li class="superficie cartao-receita">
+          <h2><a [routerLink]="['/receitas', receita.id]">{{ receita.titulo }}</a></h2>
+          @if (receita.descricao) {
+            <p>{{ receita.descricao }}</p>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

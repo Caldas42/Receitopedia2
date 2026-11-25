@@ -1,0 +1,26 @@
+Domain Receitopedia {
+    Subdomain GerenciamentoDeReceitas
+}
+
+ContextMap {
+    contains Receitas
+}
+
+BoundedContext Receitas implements GerenciamentoDeReceitas {
+    Aggregate GerenciamentoDeReceitas {
+        Entity Receita {
+            aggregateRoot
+
+            UUID id
+            long versao
+            -DadosReceita dados
+        }
+
+        ValueObject DadosReceita {
+            String titulo
+            String descricao
+            List<String> ingredientes
+            List<String> etapas
+        }
+    }
+}

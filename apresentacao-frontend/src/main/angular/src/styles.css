@@ -1,1 +1,179 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: light;
+  --bs-body-bg: #faf7f2;
+  --bs-body-color: #2f261f;
+  --bs-link-color: #963f27;
+  --bs-link-color-rgb: 150, 63, 39;
+  --bs-link-hover-color-rgb: 103, 42, 24;
+  --papel: #fffdfa;
+  --borda: #e7dbd0;
+  --acento: #943e26;
+}
+
+.cabecalho-site {
+  background: var(--papel);
+  border-bottom: 1px solid var(--borda);
+}
+
+.marca {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 1rem 0;
+  font: 700 1.45rem Georgia, serif;
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+
+.marca i {
+  color: var(--acento);
+}
+
+.conteudo {
+  padding-block: clamp(1.5rem, 5vw, 3.5rem);
+  max-width: 1050px;
+}
+
+h1, h2 {
+  font-family: Georgia, serif;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: clamp(2.15rem, 5vw, 3.5rem);
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+.cabecalho-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem 1.5rem;
+  margin-bottom: 1.4rem;
+}
+
+.cabecalho-pagina h1 {
+  margin: 0;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--acento);
+  --bs-btn-border-color: var(--acento);
+  --bs-btn-hover-bg: #79321f;
+  --bs-btn-hover-border-color: #79321f;
+  --bs-btn-active-bg: #672b1b;
+  --bs-btn-active-border-color: #672b1b;
+  --bs-btn-disabled-bg: #793b2a;
+  --bs-btn-disabled-border-color: #793b2a;
+  --bs-btn-focus-shadow-rgb: 148, 62, 38;
+}
+
+.superficie {
+  padding: clamp(1rem, 3vw, 1.6rem);
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  border-radius: 1rem;
+}
+
+.estado-vazio {
+  padding-block: 3rem;
+  text-align: center;
+}
+
+.estado-vazio i {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  color: var(--acento);
+  font-size: 1.6rem;
+}
+
+.estado-vazio p,
+.cartao-receita p {
+  margin-bottom: 0;
+  color: #62554a;
+  overflow-wrap: anywhere;
+}
+
+.grade-receitas, .grade-detalhe {
+  display: grid;
+  gap: 1rem;
+}
+
+.grade-receitas {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+}
+
+.cartao-receita h2:last-child {
+  margin-bottom: 0;
+}
+
+.cartao-receita a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.cartao-receita p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.descricao-receita {
+  max-width: 66ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.itens-receita {
+  padding-left: 1.4rem;
+  margin: 1rem 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.itens-receita li + li {
+  margin-top: 0.5rem;
+}
+
+.confirmar-exclusao {
+  margin-bottom: 1rem;
+  border-color: #e0b6af;
+}
+
+.formulario-receita {
+  max-width: 740px;
+}
+
+.formulario-receita .form-label {
+  font-weight: 600;
+}
+
+.formulario-receita .form-control:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 0.2rem #943e2626;
+}
+
+@media (min-width: 768px) {
+  .grade-detalhe {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
