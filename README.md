@@ -1,7 +1,5 @@
 # Receitopédia
 
-Base de desenvolvimento Java e Angular organizada em módulos Maven. O código reutilizável desta base deriva do exemplo de DDD do professor, licenciado sob a GNU AGPL v3 conforme o arquivo LICENSE.
-
 ## Estrutura
 
 - `pai` centraliza a configuração Maven.
