@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "sgb": {
+    "receitopedia": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -59,10 +59,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "sgb:build:production"
+              "buildTarget": "receitopedia:build:production"
             },
             "development": {
-              "buildTarget": "sgb:build:development"
+              "buildTarget": "receitopedia:build:development"
             }
           },
           "defaultConfiguration": "development",

@@ -11,8 +11,8 @@
 	    <relativePath/>
 	</parent>
 
-	<groupId>dev.sauloaraujo.sgb</groupId>
-	<artifactId>sgb-pai</artifactId>
+	<groupId>dev.pedrocaldas.receitopedia</groupId>
+	<artifactId>receitopedia-pai</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	
 	<packaging>pom</packaging>
@@ -44,7 +44,7 @@
 					<graphFormat>puml</graphFormat>
 					<showDuplicates>true</showDuplicates>
 					<includes>
-						<include>dev.sauloaraujo.sgb*</include>
+						<include>dev.pedrocaldas.receitopedia*</include>
 					</includes>					
 				</configuration>
 			</plugin>

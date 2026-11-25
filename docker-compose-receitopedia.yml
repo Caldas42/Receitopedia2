@@ -1,0 +1,15 @@
+include:
+  - docker-compose.yml
+
+services:
+  receitopedia:
+    image: receitopedia-apresentacao-frontend:0.0.1-SNAPSHOT
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/receitopedia
+      SPRING_DATASOURCE_USERNAME: receitopedia
+      SPRING_DATASOURCE_PASSWORD: receitopedia
+    ports:
+      - "8080:8080"

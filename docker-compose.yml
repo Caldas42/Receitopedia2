@@ -1,15 +1,19 @@
 services:
-  -postgres:
-     container_name: postgres
-     image: postgres:18
-     environment:
-       POSTGRES_DB: sgb
-       POSTGRES_USER: sgb       
-       POSTGRES_PASSWORD: sgb
-     volumes:
-       - postgres:/var/lib/postgresql/18/docker
-     ports:
-       - 5432:5432
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: receitopedia
+      POSTGRES_USER: receitopedia
+      POSTGRES_PASSWORD: receitopedia
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - receitopedia-postgres:/var/lib/postgresql
+    ports:
+      - "5432:5432"
 
 volumes:
-  postgres:
+  receitopedia-postgres:

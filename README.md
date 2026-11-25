@@ -1,20 +1,23 @@
-# SGB (Sistema de Gerenciamento de Biblioteca)
-Exemplo de DDD (Domain-Driven Design)
+# Receitopédia
 
-## Build
-Para efetuar o build do projeto, execute o comando:
+Base de desenvolvimento Java e Angular organizada em módulos Maven. O código reutilizável desta base deriva do exemplo de DDD do professor, licenciado sob a GNU AGPL v3 conforme o arquivo LICENSE.
 
-`mvn clean install`
+## Estrutura
 
-A máquina onde o build será executado precisar conter:
+- `pai` centraliza a configuração Maven.
+- `dominio-acervo`, `dominio-administracao`, `dominio-analise` e `dominio-compartilhado` organizam as camadas de domínio.
+- `aplicacao` reúne os casos de uso e `infraestrutura` concentra persistência, migrações e serviços técnicos.
+- `apresentacao-backend`, `apresentacao-frontend` e `apresentacao-vaadin` mantêm as entradas Spring Boot, Angular e Vaadin.
 
-- Docker (build realizado com sucesso com a versão 28.5.1)
-- NodeJS (build realizado com sucesso com a versão v24.11.0)
-- NPM (build realizado com sucesso com a versão 11.6.2)
+## Compilar e executar
 
-## Execução
-Após realizar o build, você pode executar o sistema com o comando:
+Com Java, Maven, Node.js, npm, Docker e Docker Compose instalados, rode na raiz:
 
-`docker compose -f docker-compose-sgb.yml up`
+```sh
+mvn clean install
+docker compose -f docker-compose-receitopedia.yml up
+```
 
-Para acessar o sistema, visite o endereço http://localhost:8080
+A aplicação fica em http://localhost:8080. O frontend inicial é uma estrutura Angular com roteamento preparado para as próximas telas.
+
+Para compilar sem gerar a imagem Docker, use `mvn clean verify`. Para iniciar somente o PostgreSQL de desenvolvimento, use `docker compose up postgres`.

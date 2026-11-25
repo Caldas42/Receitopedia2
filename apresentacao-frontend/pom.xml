@@ -5,13 +5,13 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>dev.sauloaraujo.sgb</groupId>
-		<artifactId>sgb-pai</artifactId>
+		<groupId>dev.pedrocaldas.receitopedia</groupId>
+		<artifactId>receitopedia-pai</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 		<relativePath>../pai</relativePath>
 	</parent>
 
-	<artifactId>sgb-apresentacao-frontend</artifactId>
+	<artifactId>receitopedia-apresentacao-frontend</artifactId>
 
 	<build>
 		<plugins>
@@ -72,10 +72,10 @@
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${project.basedir}/src/main/resources/static</outputDirectory>
+							<outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
 							<resources>
 								<resource>
-									<directory>src/main/angular/dist/sgb/browser</directory>
+									<directory>src/main/angular/dist/receitopedia/browser</directory>
 								</resource>
 							</resources>
 						</configuration>
@@ -87,7 +87,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>dev.sauloaraujo.sgb.BackendAplicacao</mainClass>
+					<mainClass>dev.pedrocaldas.receitopedia.BackendAplicacao</mainClass>
 				</configuration>
 				<executions>
 					<execution>
@@ -110,7 +110,7 @@
 						</goals>
 						<configuration>
 							<container>
-								<mainClass>dev.sauloaraujo.sgb.BackendAplicacao</mainClass>							
+								<mainClass>dev.pedrocaldas.receitopedia.BackendAplicacao</mainClass>							
 							</container>
 						</configuration>
 					</execution>
@@ -121,8 +121,8 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>dev.sauloaraujo.sgb</groupId>
-			<artifactId>sgb-apresentacao-backend</artifactId>
+			<groupId>dev.pedrocaldas.receitopedia</groupId>
+			<artifactId>receitopedia-apresentacao-backend</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>

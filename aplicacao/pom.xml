@@ -5,30 +5,30 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>dev.sauloaraujo.sgb</groupId>
-		<artifactId>sgb-pai</artifactId>
+		<groupId>dev.pedrocaldas.receitopedia</groupId>
+		<artifactId>receitopedia-pai</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	    <relativePath>../pai</relativePath>
 	</parent>
 
-	<artifactId>sgb-aplicacao</artifactId>
+	<artifactId>receitopedia-aplicacao</artifactId>
 
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sgb-dominio-acervo</artifactId>
+			<artifactId>receitopedia-dominio-acervo</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sgb-dominio-administracao</artifactId>
+			<artifactId>receitopedia-dominio-administracao</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sgb-dominio-analise</artifactId>
+			<artifactId>receitopedia-dominio-analise</artifactId>
 			<version>${project.version}</version>
 		</dependency>		
 	</dependencies>
