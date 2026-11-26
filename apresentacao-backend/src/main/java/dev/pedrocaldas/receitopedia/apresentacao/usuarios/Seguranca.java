@@ -1,5 +1,6 @@
 package dev.pedrocaldas.receitopedia.apresentacao.usuarios;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,6 +22,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 @Configuration
+@ConditionalOnWebApplication
 class Seguranca {
     @Bean
     PasswordEncoder codificadorSenha() {
@@ -77,7 +79,7 @@ class Seguranca {
                         }))
                 .logout(logout -> logout
                         .logoutUrl("/backend/logout")
-                        .deleteCookies("JSESSIONID")
+                        .deleteCookies("SESSION")
                         .logoutSuccessHandler((requisicao, resposta, autenticacao) -> resposta.setStatus(SC_NO_CONTENT)))
                 .build();
     }

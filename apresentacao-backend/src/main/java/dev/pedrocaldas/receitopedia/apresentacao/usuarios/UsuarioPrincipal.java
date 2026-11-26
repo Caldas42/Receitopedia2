@@ -10,6 +10,7 @@ import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.Usuario;
 
 public class UsuarioPrincipal extends User {
+    private static final long serialVersionUID = 1L;
     private final UUID id;
     private final String nomeUsuario;
     private final Papel papel;

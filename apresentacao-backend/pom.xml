@@ -71,6 +71,11 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.session</groupId>
+			<artifactId>spring-session-jdbc</artifactId>
+		</dependency>
+
 		<!-- Testes de aceitação -->
 		<dependency>
 			<groupId>io.cucumber</groupId>
