@@ -1,0 +1,45 @@
+<h1 class="mb-4">{{ cadastro ? 'Criar conta' : 'Entrar' }}</h1>
+@if (contaCriada) {
+  <p class="alert alert-success" role="status">Conta criada. Entre com seu e-mail e senha.</p>
+}
+<form class="superficie formulario-conta" [formGroup]="formulario" (ngSubmit)="enviar()">
+  <fieldset [disabled]="enviado()">
+    <div class="mb-3">
+      <label class="form-label" for="email">E-mail</label>
+      <input class="form-control" id="email" type="email" formControlName="email" autocomplete="username"
+             [attr.aria-describedby]="campos()['email'] ? 'erro-email' : null"
+             [attr.aria-invalid]="!!campos()['email']" />
+      @if (campos()['email']; as erro) {
+        <div id="erro-email" class="text-danger">{{ erro }}</div>
+      }
+    </div>
+    @if (cadastro) {
+      <div class="mb-3">
+        <label class="form-label" for="nome-usuario">Nome de usuário</label>
+        <input class="form-control" id="nome-usuario" formControlName="nomeUsuario" autocomplete="nickname"
+               aria-describedby="ajuda-nome" [attr.aria-invalid]="!!campos()['nomeUsuario']" />
+        <div id="ajuda-nome" [class.text-danger]="!!campos()['nomeUsuario']" class="form-text">
+          {{ campos()['nomeUsuario'] || '3 a 20 caracteres, sem espaços.' }}
+        </div>
+      </div>
+    }
+    <div class="mb-3">
+      <label class="form-label" for="senha">Senha</label>
+      <input class="form-control" id="senha" type="password" formControlName="senha"
+             [attr.autocomplete]="cadastro ? 'new-password' : 'current-password'"
+             [attr.aria-describedby]="cadastro ? 'ajuda-senha' : null" [attr.aria-invalid]="!!campos()['senha']" />
+      @if (cadastro) {
+        <div id="ajuda-senha" [class.text-danger]="!!campos()['senha']" class="form-text">
+          {{ campos()['senha'] || 'Pelo menos 8 caracteres, com maiúscula, minúscula, número e símbolo.' }}
+        </div>
+      }
+    </div>
+    @if (aviso()) {
+      <p class="alert alert-danger" role="alert">{{ aviso() }}</p>
+    }
+    <div class="acoes align-items-center">
+      <button class="btn btn-primary" type="submit">{{ cadastro ? 'Criar conta' : 'Entrar' }}</button>
+      <a [routerLink]="cadastro ? '/entrar' : '/cadastro'">{{ cadastro ? 'Já tenho conta' : 'Criar conta' }}</a>
+    </div>
+  </fieldset>
+</form>

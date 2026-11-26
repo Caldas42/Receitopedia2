@@ -177,3 +177,37 @@ h2 {
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   }
 }
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-bottom: 0.25rem;
+}
+
+.menu-conta {
+  position: relative;
+}
+
+.menu-conta summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.menu-conta-opcoes {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: max-content;
+  padding: 0.55rem;
+  border: 1px solid var(--borda);
+  border-radius: 0.6rem;
+  background: var(--papel);
+}
+
+.formulario-conta {
+  max-width: 470px;
+}

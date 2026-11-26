@@ -1,11 +1,27 @@
 <header class="cabecalho-site">
-  <nav class="container" aria-label="Navegação principal">
+  <nav class="container navegacao" aria-label="Navegação principal">
     <a class="marca" routerLink="/receitas">
       <i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i>
       Receitopédia
     </a>
+    @if (sessao.usuario(); as usuario) {
+      <details class="menu-conta">
+        <summary>{{ usuario.nomeUsuario }}</summary>
+        <div class="menu-conta-opcoes">
+          <button class="btn btn-outline-secondary" type="button" (click)="sair()">Sair da conta</button>
+        </div>
+      </details>
+    } @else {
+      <div class="acoes">
+        <a class="btn btn-outline-secondary" routerLink="/entrar">Entrar</a>
+        <a class="btn btn-primary" routerLink="/cadastro">Criar conta</a>
+      </div>
+    }
   </nav>
 </header>
 <main class="container conteudo">
+  @if (falhaAoSair()) {
+    <p class="alert alert-danger" role="alert">Não foi possível sair da conta. Tente novamente.</p>
+  }
   <router-outlet />
 </main>

@@ -3,6 +3,7 @@ package dev.pedrocaldas.receitopedia.apresentacao.receitas;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.PUT;
+import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -17,13 +18,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import dev.pedrocaldas.receitopedia.apresentacao.ClienteReceitopedia;
+import io.cucumber.java.Before;
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.pt.Então;
 import io.cucumber.java.pt.Quando;
@@ -33,8 +34,14 @@ public class ReceitasPassos {
     private static final List<String> INGREDIENTES = List.of("2 cenouras", "3 ovos");
     private static final List<String> ETAPAS = List.of("Bata os ingredientes.", "Leve ao forno.");
 
-    @Autowired
-    private TestRestTemplate http;
+    @LocalServerPort
+    private int porta;
+    private ClienteReceitopedia http;
+
+    @Before
+    public void iniciarCliente() {
+        http = new ClienteReceitopedia(porta);
+    }
 
     private String id;
     private String titulo;
@@ -47,7 +54,7 @@ public class ReceitasPassos {
     @Quando("cadastro uma receita com o título {string}")
     public void cadastrar(String titulo) {
         this.titulo = titulo;
-        var criada = http.postForEntity(RECEITAS, formulario(titulo, INGREDIENTES), JsonNode.class);
+        var criada = http.escrever(RECEITAS, POST, formulario(titulo, INGREDIENTES));
         assertThat(criada.getStatusCode()).isEqualTo(CREATED);
         var receita = criada.getBody();
         id = receita.path("id").asText();
@@ -57,7 +64,7 @@ public class ReceitasPassos {
 
     @Então("a receita aparece na lista")
     public void apareceNaLista() {
-        var lista = http.getForEntity(RECEITAS, JsonNode.class);
+        var lista = http.ler(RECEITAS);
         assertThat(lista.getStatusCode()).isEqualTo(OK);
         assertThat(lista.getBody()).anySatisfy(receita -> {
             assertThat(receita.path("id").asText()).isEqualTo(id);
@@ -87,20 +94,20 @@ public class ReceitasPassos {
 
     @Quando("removo a receita na versão atual")
     public void remover() {
-        var exclusao = http.exchange(caminhoReceita() + "?versao=" + versao, DELETE, null, Void.class);
+        var exclusao = http.escrever(caminhoReceita() + "?versao=" + versao, DELETE, null);
         assertThat(exclusao.getStatusCode()).isEqualTo(NO_CONTENT);
     }
 
     @Então("a receita deixa de aparecer na lista e o detalhe retorna 404")
     public void receitaRemovida() {
-        var lista = http.getForEntity(RECEITAS, JsonNode.class);
+        var lista = http.ler(RECEITAS);
         assertThat(lista.getBody()).noneSatisfy(receita -> assertThat(receita.path("id").asText()).isEqualTo(id));
-        assertThat(http.getForEntity(caminhoReceita(), JsonNode.class).getStatusCode()).isEqualTo(NOT_FOUND);
+        assertThat(http.ler(caminhoReceita()).getStatusCode()).isEqualTo(NOT_FOUND);
     }
 
     @Quando("tento cadastrar {string} sem ingredientes")
     public void cadastrarSemIngredientes(String titulo) {
-        resposta = http.postForEntity(RECEITAS, formulario(titulo, List.of()), JsonNode.class);
+        resposta = http.escrever(RECEITAS, POST, formulario(titulo, List.of()));
     }
 
     @Então("o cadastro é recusado com a mensagem {string}")
@@ -111,6 +118,7 @@ public class ReceitasPassos {
 
     @Quando("dois clientes alteram somente os ingredientes usando a mesma versão")
     public void edicoesSimultaneas() throws Exception {
+        http.ler("/backend/csrf");
         var executor = Executors.newFixedThreadPool(2);
         var prontos = new CountDownLatch(2);
         var iniciar = new CountDownLatch(1);
@@ -149,13 +157,13 @@ public class ReceitasPassos {
 
     @Então("uma exclusão baseada na versão antiga é recusada")
     public void exclusaoDesatualizada() {
-        var exclusao = http.exchange(caminhoReceita() + "?versao=" + versaoOriginal, DELETE, null, JsonNode.class);
+        var exclusao = http.escrever(caminhoReceita() + "?versao=" + versaoOriginal, DELETE, null);
         assertThat(exclusao.getStatusCode()).isEqualTo(CONFLICT);
         consultar();
     }
 
     private JsonNode consultar() {
-        var consulta = http.getForEntity(caminhoReceita(), JsonNode.class);
+        var consulta = http.ler(caminhoReceita());
         assertThat(consulta.getStatusCode()).isEqualTo(OK);
         return consulta.getBody();
     }
@@ -163,7 +171,7 @@ public class ReceitasPassos {
     private ResponseEntity<JsonNode> editar(String titulo, List<String> ingredientes) {
         var corpo = formulario(titulo, ingredientes);
         corpo.put("versao", versao);
-        return http.exchange(caminhoReceita(), PUT, new HttpEntity<>(corpo), JsonNode.class);
+        return http.escrever(caminhoReceita(), PUT, corpo);
     }
 
     private String caminhoReceita() {
