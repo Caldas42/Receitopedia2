@@ -21,7 +21,7 @@ x-aplicacao: &aplicacao
 x-web: &web
   <<: *aplicacao
   healthcheck:
-    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/backend/receitas"]
+    test: ["CMD", "wget", "-Y", "off", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/backend/receitas"]
     interval: 5s
     timeout: 3s
     retries: 20
@@ -39,7 +39,7 @@ services:
       - receitopedia
       - receitopedia-b
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/saude-proxy"]
+      test: ["CMD", "wget", "-Y", "off", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/saude-proxy"]
       interval: 5s
       timeout: 3s
       retries: 10
