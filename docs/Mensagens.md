@@ -9,7 +9,7 @@ mvn clean install
 docker compose up -d --wait
 ```
 
-Acesse [http://localhost:8080](http://localhost:8080), entre com uma conta e abra **Mensagens**. Use duas contas em perfis separados do navegador para testar uma DM. Em **Criar grupo**, informe o nome do grupo e os nomes de usuário dos membros separados por vírgulas. A opção **Gerir grupo** oferece renomear, adicionar, promover, remover e sair conforme as permissões da conversa.
+Acesse [http://localhost:8080](http://localhost:8080), entre com uma conta e abra **Mensagens**. Para testar uma DM, entre com duas contas em perfis separados do navegador e faça cada conta seguir a outra pela aba **Pessoas**. A conversa aparece para ambas em **Mensagens**. Em **Criar grupo**, informe o nome do grupo, procure amigos e selecione quem deve entrar. Em **Gerir grupo**, a busca permite adicionar outros amigos do administrador que está fazendo o convite.
 
 O alias `docker compose -f docker-compose-receitopedia.yml up` continua disponível. Use `RECEITOPEDIA_PORTA` e `RECEITOPEDIA_PORTA_POSTGRES` para mudar as portas locais. Para preparar a imagem a partir do JAR, também é possível usar `mvn clean verify` e o comando abaixo.
 
@@ -43,7 +43,7 @@ flowchart LR
 - O Nginx distribui as requisições entre os dois nós e desativa o buffering para o SSE. O cabeçalho `X-Receitopedia-No` permite inspecionar o upstream. As réplicas processam HTTP e servem a mesma interface.
 - O PostgreSQL mantém as sessões Spring Session JDBC, os dados do chat e o outbox. A mesma sessão funciona nas duas réplicas. Flyway aplica as tabelas novas. A execução local sem broker continua disponível para desenvolvimento e testes da API.
 - O RabbitMQ separa o produtor do worker. O worker roda sem servidor HTTP e pode reiniciar sem interromper as requisições das réplicas. As três aplicações enxergam o mesmo volume de arquivos. A fila de notificações de cada réplica é exclusiva e temporária.
-- O chat usa SSE porque os navegadores precisam receber eventos espontâneos do servidor e já enviam operações com HTTP autenticado e CSRF. Cada atualização contém a identificação da conversa, e o navegador consulta a API para recuperar o estado. A rota SSE exige sessão e cada notificação é enviada aos participantes ativos. O cliente reconecta e faz uma consulta periódica para convergir depois de uma desconexão.
+- O chat usa SSE porque os navegadores precisam receber eventos espontâneos do servidor e já enviam operações com HTTP autenticado e CSRF. Cada atualização sinaliza uma mudança. O navegador consulta a API para recuperar o estado. A rota SSE exige sessão e cada notificação é enviada às pessoas afetadas pela mudança. O cliente reconecta e faz uma consulta periódica para convergir depois de uma desconexão.
 
 O navegador gera o UUID e recebe HTTP 202 depois que a réplica grava a mensagem e o evento em uma transação. A mensagem fica visível para o autor como **Enviada**. Os processos ativos dividem a publicação das linhas pendentes com `SKIP LOCKED`. O publicador usa mensagens persistentes, exchange e filas duráveis, publisher confirms, publicação obrigatória e timeout. Se o broker estiver fora, a linha segue pendente. Se houver falha entre a confirmação no broker e o registro no outbox, o evento pode ser publicado novamente.
 
@@ -63,9 +63,13 @@ Reprocessar publica cada evento novamente com confirmação antes de removê-lo 
 | --- | --- |
 | Mensagem e ordem por conversa | Forte no PostgreSQL. O lock da conversa serializa a atribuição da sequência. O worker libera em ordem, inclusive quando um evento posterior chega antes de um anterior. |
 | Membros e administração | Forte. Alterações travam a conversa durante a validação e a gravação. Com 255 pessoas, duas entradas simultâneas deixam exatamente 256 no grupo. A última pessoa com papel de administrador precisa promover alguém antes de sair. |
-| Bloqueio direto | Forte. O envio e as alterações do bloqueio usam o mesmo lock do par. A restrição vale nos dois sentidos e o bloqueio pode ser desfeito pelo autor. |
+| Seguimentos e amizade | Forte. Seguir é direcional, imediato e idempotente. Amigos são duas pessoas que se seguem mutuamente. A chave composta impede duplicidade e os locks de usuário seguem a ordem dos UUIDs. |
+| DM automática | Forte. O seguimento que completa a amizade cria ou reativa a DM na mesma transação. O par normalizado é único. Deixar de seguir desativa a DM e preserva as mensagens. O outbox informa ambos os participantes sobre a mudança. |
+| Bloqueio direto | Forte. O envio e as alterações do bloqueio usam o mesmo lock do par. A restrição vale nos dois sentidos, mesmo entre amigos, e o bloqueio pode ser desfeito pelo autor. |
 | Edição e exclusão | Forte. A versão otimista da mensagem gera HTTP 409 no conflito entre alterações concorrentes. A janela é de 15 minutos, exclusiva do autor. Após apagar, o histórico conserva apenas o marcador. |
 | Recibos, não lidas e atualização da interface | Eventual. Recibos usam a chave mensagem/usuário e preservam o primeiro momento de leitura. No grupo, **Lida** exige a leitura de todos os membros ativos, exceto o autor. O recebimento da notificação só invalida a visualização, que busca o estado armazenado. |
+
+Quem já entrou em um grupo permanece nele ao deixar de ser amigo de quem fez o convite. A exigência de amizade vale para a criação e para a entrada de novos membros. A migração V12 conserva as DMs antigas e coloca todas no estado inativo até que os participantes se sigam. O histórico reaparece na mesma conversa quando os dois viram amigos.
 
 A busca opera no texto da conversa autorizada, sem distinguir maiúsculas ou acentos. Ela usa parâmetros, escapa `%` e `_` e pagina pela sequência. Quem não participa recebe a mesma resposta que receberia para uma conversa inexistente. O chat aceita até quatro imagens JPEG, PNG ou WebP de 5 MB cada, verificadas pela assinatura e armazenadas com UUID. O download exige participação na conversa. Angular renderiza mensagens como texto. A miniatura de JPEG ou PNG usa o original como alternativa se não puder ser gerada. WebP é exibido a partir do próprio arquivo.
 
@@ -102,7 +106,7 @@ Com quatro imagens, o ganho médio foi 1,89× e o p95 caiu de 158 para 92 ms. Co
 
 ## Demonstração e testes
 
-- `scripts/demo-consistencia.sh` executa os quatro cenários concorrentes da suíte com threads reais. Para usar o PostgreSQL, aponte `CHAT_TEST_DB_URL`, `CHAT_TEST_DB_USER` e `CHAT_TEST_DB_PASSWORD` para um banco descartável. [Registro do teste concorrente](fccpd/consistencia.txt)
+- `scripts/demo-consistencia.sh` executa os cenários concorrentes da suíte com threads reais, incluindo o seguimento simultâneo que cria exatamente uma DM e o conflito entre inclusão de membros quando um grupo tem 255 pessoas. Para usar o PostgreSQL, aponte `CHAT_TEST_DB_URL`, `CHAT_TEST_DB_USER` e `CHAT_TEST_DB_PASSWORD` para um banco descartável. [Cenários de concorrência do chat](../apresentacao-backend/src/test/java/dev/pedrocaldas/receitopedia/apresentacao/comunicacao/ChatHttpTest.java)
 - `FCCPD_LOGS=/tmp/receitopedia-falhas scripts/demo-falha.sh --base http://localhost:8080` cria contas de teste, faz envios contínuos e interrompe temporariamente worker, réplica web e RabbitMQ. Use em um projeto Compose de teste com a DLQ vazia. Ao final, o script também provoca uma falha de processamento, verifica retry e DLQ, reenvia o evento e testa idempotência. O diretório definido em `FCCPD_LOGS` recebe o relatório e os logs dos serviços.
 
 No ensaio registrado, as três paradas ocorreram durante o envio pelo Nginx. O desligamento do worker deixou 7 eventos na fila. A interrupção do RabbitMQ deixou 8 eventos no outbox. O destinatário recebeu as 9 mensagens de cada cenário após a recuperação, totalizando 27, sem duplicatas. Uma falha de processamento adicional chegou à DLQ após três tentativas. O reprocessamento entregou a mensagem, e uma republicação do mesmo evento manteve uma mensagem e um recibo. [Registro da demonstração](fccpd/demo-falha.log) · [Trechos dos logs dos serviços](fccpd/servicos-falha.txt)
