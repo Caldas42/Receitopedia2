@@ -133,8 +133,11 @@ class FotosHttpTest {
         var excesso = enviar(dono, POST, RECEITAS, dados(0), List.of(png, png, png, png, png, png));
         assertThat(excesso.getStatusCode()).isEqualTo(BAD_REQUEST);
         assertThat(excesso.getBody().path("detail").asText()).contains("5 fotos");
-        var grande = enviar(dono, POST, RECEITAS, dados(0), List.of(new byte[TipoFoto.LIMITE_BYTES + 1]));
-        assertThat(grande.getStatusCode()).isEqualTo(PAYLOAD_TOO_LARGE);
+        for (int tamanho : List.of(TipoFoto.LIMITE_BYTES + 1, 2 * TipoFoto.LIMITE_BYTES)) {
+            var grande = enviar(dono, POST, RECEITAS, dados(0), List.of(new byte[tamanho]));
+            assertThat(grande.getStatusCode()).isEqualTo(PAYLOAD_TOO_LARGE);
+            assertThat(grande.getBody().path("detail").asText()).contains("5 MB");
+        }
         var falso = enviar(dono, POST, RECEITAS, dados(0), List.of("<html></html>".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         assertThat(falso.getStatusCode()).isEqualTo(BAD_REQUEST);
         assertThat(falso.getBody().path("detail").asText()).contains("JPEG, PNG ou WebP");
