@@ -43,3 +43,33 @@
   object-fit: contain;
   border-radius: 0.5rem;
 }
+
+.foto-em-exibicao {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.25rem, 2vw, 1rem);
+}
+
+.foto-em-exibicao img {
+  flex: 1 1 0;
+  min-width: 0;
+  touch-action: pan-y pinch-zoom;
+}
+
+.seta-foto {
+  flex: 0 0 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+}
+
+.rotulo-deixar {
+  display: none;
+}
+
+.botao-seguimento:is(:hover, :focus-visible) .rotulo-deixar {
+  display: inline;
+}
+
+.botao-seguimento:is(:hover, :focus-visible) .rotulo-seguindo {
+  display: none;
+}

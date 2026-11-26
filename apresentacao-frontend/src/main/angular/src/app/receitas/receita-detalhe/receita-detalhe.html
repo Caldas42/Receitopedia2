@@ -17,7 +17,7 @@
 @if (carregando() ? null : receita(); as receitaAtual) {
   <article aria-labelledby="titulo-receita">
     <header class="cabecalho-pagina">
-      <h1 id="titulo-receita">{{ receitaAtual.dados.titulo || 'Receita sem título' }}</h1>
+      <h1 id="titulo-receita">{{ receitaAtual.dados.titulo }}</h1>
       @if (receitaAtual.dono && receitaAtual.dono.id === sessao.usuario()?.id) {
         <div class="acoes">
           <a class="btn btn-outline-secondary" [routerLink]="['/receitas', receitaAtual.id, 'editar']">
@@ -36,7 +36,25 @@
       <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
     }
     @if (receitaAtual.dono; as dono) {
-      <p class="text-secondary">Por {{ dono.nomeUsuario }}</p>
+      <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+        <span class="text-secondary">Por {{ dono.nomeUsuario }}</span>
+        @if (autorSeguido() && seguindo() !== null) {
+          <button type="button" class="btn btn-sm botao-seguimento" [class.btn-primary]="!seguindo()"
+                  [class.btn-outline-secondary]="seguindo()" [disabled]="alterandoSeguimento()"
+                  [attr.aria-label]="(seguindo() ? 'Deixar de seguir ' : 'Seguir ') + dono.nomeUsuario"
+                  (click)="alternarSeguimento()">
+            @if (seguindo()) {
+              <span class="rotulo-seguindo">Seguindo</span>
+              <span class="rotulo-deixar" aria-hidden="true">Deixar de seguir</span>
+            } @else {
+              Seguir +
+            }
+          </button>
+        }
+      </div>
+      @if (falhaSeguimento()) {
+        <p class="text-danger" role="alert">{{ falhaSeguimento() }}</p>
+      }
     } @else {
       <p class="text-secondary">Receita sem autor associado</p>
     }
@@ -61,32 +79,55 @@
 
     @if (receitaAtual.fotos.length) {
       <figure class="superficie galeria-receita" aria-label="Fotos da receita">
-        <img class="foto-principal" [src]="caminhoFoto(receitaAtual.id, receitaAtual.fotos[0].id)"
-             alt="Foto principal da receita" />
+        <button class="miniatura-secundaria" type="button" aria-label="Ampliar foto principal"
+                (click)="ampliarFoto(visorFoto, 0)">
+          <img class="foto-principal" [src]="caminhoFoto(receitaAtual.id, receitaAtual.fotos[0].id)"
+               alt="Foto principal da receita" />
+        </button>
         @if (receitaAtual.fotos.length > 1) {
           <ul class="grade-fotos list-unstyled mb-0">
             @for (foto of receitaAtual.fotos.slice(1); track foto.id) {
-              @let url = caminhoFoto(receitaAtual.id, foto.id);
               @let descricao = 'Foto secundária ' + ($index + 1);
               <li>
                 <button class="miniatura-secundaria" type="button"
                         [attr.aria-label]="'Ampliar ' + descricao.toLowerCase()"
-                        (click)="ampliarFoto(visorFoto, url, descricao)">
-                  <img class="foto-secundaria" [src]="url" [alt]="descricao" loading="lazy" />
+                        (click)="ampliarFoto(visorFoto, $index + 1)">
+                  <img class="foto-secundaria" [src]="caminhoFoto(receitaAtual.id, foto.id)"
+                       [alt]="descricao" loading="lazy" />
                 </button>
               </li>
             }
           </ul>
-          <dialog #visorFoto class="visor-foto" aria-label="Foto ampliada"
-                  (close)="fotoAmpliada.set(null)">
-            <form method="dialog">
-              <button class="btn btn-outline-secondary" type="submit">Fechar foto</button>
-            </form>
-            @if (fotoAmpliada(); as foto) {
-              <img [src]="foto.url" [alt]="foto.descricao" />
-            }
-          </dialog>
         }
+        <dialog #visorFoto class="visor-foto" aria-label="Foto ampliada" (close)="fotoAmpliada.set(null)"
+                (keydown)="usarTeclado($event, visorFoto)">
+          <form method="dialog">
+            <button class="btn btn-outline-secondary" type="submit">Fechar foto</button>
+          </form>
+          @let posicao = fotoAmpliada();
+          @if (posicao !== null) {
+            <div class="foto-em-exibicao">
+              @if (receitaAtual.fotos.length > 1) {
+                <button class="btn btn-outline-secondary seta-foto" type="button"
+                        aria-label="Foto anterior" (click)="navegarFoto(-1)">
+                  <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                </button>
+              }
+              <img [src]="caminhoFoto(receitaAtual.id, receitaAtual.fotos[posicao].id)"
+                   [alt]="posicao === 0 ? 'Foto principal da receita' : 'Foto secundária ' + posicao"
+                   (touchstart)="iniciarToque($event)" (touchend)="concluirToque($event)" />
+              @if (receitaAtual.fotos.length > 1) {
+                <button class="btn btn-outline-secondary seta-foto" type="button"
+                        aria-label="Próxima foto" (click)="navegarFoto(1)">
+                  <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+            @if (receitaAtual.fotos.length > 1) {
+              <p class="text-center mb-0 mt-2" role="status">{{ posicao + 1 }}/{{ receitaAtual.fotos.length }}</p>
+            }
+          }
+        </dialog>
       </figure>
     } @else {
       <div class="superficie foto-placeholder foto-sem-imagem" role="img" aria-label="Receita sem foto">

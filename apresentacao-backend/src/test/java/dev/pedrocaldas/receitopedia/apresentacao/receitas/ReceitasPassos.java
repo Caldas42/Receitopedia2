@@ -229,14 +229,9 @@ public class ReceitasPassos {
         var corpo = formulario("", INGREDIENTES);
         corpo.remove("titulo");
         corpo.remove("descricao");
-        var criada = http.escrever(RECEITAS, POST, corpo);
-        assertThat(criada.getStatusCode()).isEqualTo(CREATED);
-        id = criada.getBody().path("id").asText();
-    }
-
-    @Então("o título fica vazio no detalhe da receita")
-    public void tituloOpcional() {
-        assertThat(consultar().path("dados").path("titulo").asText()).isEmpty();
+        var resposta = http.escrever(RECEITAS, POST, corpo);
+        assertThat(resposta.getStatusCode()).isEqualTo(BAD_REQUEST);
+        assertThat(resposta.getBody().path("detail").asText()).contains("título");
     }
 
     @Quando("cadastro uma receita com {int} minutos e sem horas")

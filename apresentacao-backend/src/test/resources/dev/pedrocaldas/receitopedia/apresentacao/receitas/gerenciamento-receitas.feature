@@ -31,9 +31,8 @@ Funcionalidade: Gerenciamento de receitas
     Dado que cadastrei uma receita com o título "Receita pessoal"
     Então Minhas Receitas lista somente as receitas do usuário logado
 
-  Cenário: Adicionar receita sem título ou descrição
+  Cenário: Recusar receita sem título
     Quando cadastro ingredientes e modo de preparo sem título
-    Então o título fica vazio no detalhe da receita
 
   Cenário: Usar somente minutos no tempo de preparo
     Quando cadastro uma receita com 45 minutos e sem horas

@@ -36,7 +36,7 @@ BoundedContext Receitas implements GerenciamentoDeReceitas {
         }
 
         ValueObject DadosReceita {
-            String titulo nullable
+            String titulo
             String descricao nullable
             List<String> ingredientes notEmpty
             List<String> etapas notEmpty

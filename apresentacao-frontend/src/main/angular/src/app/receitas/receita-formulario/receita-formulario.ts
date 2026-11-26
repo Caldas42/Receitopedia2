@@ -38,7 +38,7 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
   protected readonly falhaCategorias = signal(false);
   protected readonly conflito = signal(false);
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
-    titulo: ['', Validators.maxLength(120)],
+    titulo: ['', [Validators.required, Validators.maxLength(120)]],
     descricao: ['', Validators.maxLength(1000)],
     ingredientes: ['', Validators.required],
     etapas: ['', Validators.required],
@@ -155,6 +155,11 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
       minutos: campos.minutos,
       categorias: this.selecionadas(),
     };
+
+    if (!dados.titulo || dados.titulo.length > 120) {
+      this.falha.set('O título deve ter entre 1 e 120 caracteres.');
+      return;
+    }
 
     if (this.formulario.invalid || !dados.ingredientes.length || !dados.etapas.length) {
       this.falha.set('Informe pelo menos um ingrediente e uma etapa de preparo.');

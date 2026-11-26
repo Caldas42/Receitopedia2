@@ -49,6 +49,24 @@ class BuscaReceitasHttpTest {
     }
 
     @Test
+    void buscaAutorPorTrechoLiteralECombinaComTitulo() {
+        String autor = "Bruno_" + java.util.UUID.randomUUID().toString().substring(0, 7);
+        String email = autor.toLowerCase(Locale.ROOT) + "@example.com";
+        assertThat(dono.cadastrar(email, autor, SENHA_TESTE).getStatusCode()).isEqualTo(CREATED);
+        assertThat(dono.entrar(email, SENHA_TESTE).getStatusCode()).isEqualTo(NO_CONTENT);
+
+        String principal = criarReceita(dono, "Canjica de coco");
+        String outra = criarReceita(dono, "Mungunzá");
+        criarReceita(novoDono(), "Canjica salgada");
+        String buscaAutor = "BRÚNO_" + autor.substring(6);
+        var resultado = buscar(dono, RECEITAS, buscaAutor, 0);
+        assertThat(ids(resultado)).containsExactlyInAnyOrder(principal, outra);
+        assertThat(resultado.getBody()).allSatisfy(item -> assertThat(item.path("autor").asText()).isEqualTo(autor));
+        assertThat(ids(buscar(dono, RECEITAS, buscaAutor + " canjica", 0))).containsExactly(principal);
+        assertThat(ids(buscar(dono, RECEITAS, buscaAutor + "%", 0))).isEmpty();
+    }
+
+    @Test
     void procuraTrechosSemDiferenciarCaseOuAcentosEExigeCadaPalavra() {
         var admin = novoDono();
         String email = admin.ler("/backend/sessao").getBody().path("nomeUsuario").asText()
@@ -77,10 +95,14 @@ class BuscaReceitasHttpTest {
 
     @Test
     void trataCuringasComoTextoLiteralEValidaOsParametros() {
+        String autor = "Literal" + java.util.UUID.randomUUID().toString().substring(0, 7);
+        String email = autor.toLowerCase(Locale.ROOT) + "@example.com";
+        assertThat(dono.cadastrar(email, autor, SENHA_TESTE).getStatusCode()).isEqualTo(CREATED);
+        assertThat(dono.entrar(email, SENHA_TESTE).getStatusCode()).isEqualTo(NO_CONTENT);
         String literal = criarReceita(dono, "Especial 100% _ !");
         criarReceita(dono, "Especial 100X A");
         assertThat(ids(buscar(dono, RECEITAS, "100%", 0))).containsExactly(literal);
-        assertThat(ids(buscar(dono, RECEITAS, "_", 0))).containsExactly(literal);
+        assertThat(ids(buscar(dono, RECEITAS, "especial _", 0))).containsExactly(literal);
         assertThat(ids(buscar(dono, RECEITAS, "!", 0))).containsExactly(literal);
         assertThat(ids(buscar(dono, RECEITAS, "%' OR 1=1", 0))).isEmpty();
 

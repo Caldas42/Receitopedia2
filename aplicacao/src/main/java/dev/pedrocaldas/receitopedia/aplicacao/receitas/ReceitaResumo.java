@@ -5,13 +5,13 @@ import java.util.UUID;
 
 import dev.pedrocaldas.receitopedia.dominio.receitas.Categoria;
 
-public record ReceitaResumo(UUID id, String titulo, String descricao, Integer tempoMinutos, UUID fotoPrincipalId,
+public record ReceitaResumo(UUID id, String titulo, String descricao, Integer tempoMinutos, UUID fotoPrincipalId, String autor,
         List<Categoria> categorias) {
-    public ReceitaResumo(UUID id, String titulo, String descricao, Integer tempoMinutos, UUID fotoPrincipalId) {
-        this(id, titulo, descricao, tempoMinutos, fotoPrincipalId, List.of());
+    public ReceitaResumo(UUID id, String titulo, String descricao, Integer tempoMinutos, UUID fotoPrincipalId, String autor) {
+        this(id, titulo, descricao, tempoMinutos, fotoPrincipalId, autor, List.of());
     }
 
     public ReceitaResumo comCategorias(List<Categoria> categorias) {
-        return new ReceitaResumo(id, titulo, descricao, tempoMinutos, fotoPrincipalId, categorias);
+        return new ReceitaResumo(id, titulo, descricao, tempoMinutos, fotoPrincipalId, autor, categorias);
     }
 }

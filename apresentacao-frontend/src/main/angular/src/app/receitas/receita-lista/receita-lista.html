@@ -7,7 +7,7 @@
   </div>
 
   <form class="mb-4" (submit)="$event.preventDefault(); pesquisar()" role="search">
-    <label class="form-label" for="busca-receitas">Buscar receitas por título ou categoria</label>
+    <label class="form-label" for="busca-receitas">Buscar receitas por título, categoria ou autor</label>
     <div class="d-flex flex-wrap gap-2">
       <input class="form-control flex-fill w-auto" id="busca-receitas" type="search" maxlength="100"
              [formControl]="busca" />
@@ -47,7 +47,10 @@
               <i class="bi bi-image" aria-hidden="true"></i>
             </div>
           }
-          <h2><a [routerLink]="['/receitas', receita.id]">{{ receita.titulo || 'Receita sem título' }}</a></h2>
+          <h2><a [routerLink]="['/receitas', receita.id]">{{ receita.titulo }}</a></h2>
+          @if (receita.autor; as autor) {
+            <p class="text-secondary mb-2">Por {{ autor }}</p>
+          }
           @if (formatarTempo(receita.tempoMinutos); as tempo) {
             <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
           }

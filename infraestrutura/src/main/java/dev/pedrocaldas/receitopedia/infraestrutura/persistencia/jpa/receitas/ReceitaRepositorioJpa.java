@@ -75,14 +75,17 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
                     (receita.tituloChave like :termo%d escape '!' or exists (
                         select 1 from ReceitaJpa vinculada join vinculada.categorias categoria
                         where vinculada.id = receita.id and categoria.nomeChave like :termo%d escape '!'
+                    ) or dono.id in (
+                        select autor.id from UsuarioJpa autor where autor.nomeChave like :termo%d escape '!'
                     ))
-                    """.formatted(i, i));
+                    """.formatted(i, i, i));
         }
         String filtro = condicoes.isEmpty() ? "" : "where " + String.join(" and ", condicoes);
         var consulta = entidades.createQuery("""
                 select new dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo(
-                    receita.id, receita.titulo, receita.descricao, receita.tempoMinutos, foto.id)
+                    receita.id, receita.titulo, receita.descricao, receita.tempoMinutos, foto.id, dono.nomeUsuario)
                 from ReceitaJpa receita
+                left join receita.dono dono
                 left join receita.fotos foto on index(foto) = 0
                 %s
                 order by lower(receita.titulo), receita.id

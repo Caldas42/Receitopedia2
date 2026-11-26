@@ -152,6 +152,7 @@ class FotosHttpTest {
 
     private Map<String, Object> dados(Integer principal) {
         var dados = new LinkedHashMap<String, Object>();
+        dados.put("titulo", "Tomate fatiado");
         dados.put("ingredientes", List.of("Tomate"));
         dados.put("etapas", List.of("Corte o tomate."));
         dados.put("fotoPrincipal", principal);

@@ -28,6 +28,7 @@ export interface ReceitaResumo {
   descricao: string;
   tempoMinutos: number | null;
   fotoPrincipalId: string | null;
+  autor: string | null;
   categorias: Categoria[];
 }
 
