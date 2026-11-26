@@ -51,7 +51,7 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
         String filtro = donoId == null ? "" : "where receita.dono.id = :donoId";
         var consulta = entidades.createQuery("""
                 select new dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo(
-                    receita.id, receita.titulo, receita.descricao)
+                    receita.id, receita.titulo, receita.descricao, receita.tempoMinutos)
                 from ReceitaJpa receita
                 %s
                 order by lower(receita.titulo), receita.id

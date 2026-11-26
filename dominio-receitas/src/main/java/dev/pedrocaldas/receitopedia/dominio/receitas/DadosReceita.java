@@ -3,7 +3,7 @@ package dev.pedrocaldas.receitopedia.dominio.receitas;
 import java.util.List;
 
 public record DadosReceita(String titulo, String descricao, List<String> ingredientes,
-        List<String> etapas) {
+        List<String> etapas, TempoPreparo tempoPreparo) {
     public DadosReceita {
         titulo = titulo == null ? "" : titulo.strip();
         if (!titulo.isEmpty()) {

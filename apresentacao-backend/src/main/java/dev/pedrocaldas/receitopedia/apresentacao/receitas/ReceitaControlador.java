@@ -28,6 +28,7 @@ import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.ReceitaAcessoNegado;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.TempoPreparo;
 
 @RestController
 @RequestMapping("/backend/receitas")
@@ -93,9 +94,9 @@ public class ReceitaControlador {
     }
 
     record Formulario(String titulo, String descricao, List<String> ingredientes, List<String> etapas,
-            Long versao) {
+            Long versao, Integer horas, Integer minutos) {
         DadosReceita dados() {
-            return new DadosReceita(titulo, descricao, ingredientes, etapas);
+            return new DadosReceita(titulo, descricao, ingredientes, etapas, TempoPreparo.informado(horas, minutos));
         }
     }
 }

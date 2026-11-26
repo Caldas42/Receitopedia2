@@ -32,6 +32,9 @@
         </div>
       }
     </header>
+    @if (formatarTempo(receitaAtual.dados.tempoPreparo?.minutosTotais ?? null); as tempo) {
+      <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
+    }
     @if (receitaAtual.dono; as dono) {
       <p class="text-secondary">Por {{ dono.nomeUsuario }}</p>
     } @else {

@@ -7,6 +7,7 @@ import java.util.UUID;
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.TempoPreparo;
 import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -39,6 +40,8 @@ public class ReceitaJpa {
     @Column(nullable = false, length = 1000)
     private String descricao;
 
+    private Integer tempoMinutos;
+
     @ElementCollection
     @CollectionTable(name = "receita_ingrediente", joinColumns = @JoinColumn(name = "receita_id"))
     @OrderColumn(name = "posicao")
@@ -63,6 +66,7 @@ public class ReceitaJpa {
     void preencher(DadosReceita dados) {
         titulo = dados.titulo();
         descricao = dados.descricao();
+        tempoMinutos = dados.tempoPreparo() == null ? null : dados.tempoPreparo().minutosTotais();
         ingredientes.clear();
         ingredientes.addAll(dados.ingredientes());
         etapas.clear();
@@ -78,6 +82,7 @@ public class ReceitaJpa {
     }
 
     Receita paraDominio() {
-        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas), autor());
+        var tempo = tempoMinutos == null ? null : new TempoPreparo(tempoMinutos);
+        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas, tempo), autor());
     }
 }

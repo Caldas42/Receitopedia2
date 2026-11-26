@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { SessaoApi } from '../../contas/sessao-api';
@@ -30,6 +30,8 @@ export class ReceitaFormulario implements OnInit {
     descricao: ['', Validators.maxLength(1000)],
     ingredientes: ['', Validators.required],
     etapas: ['', Validators.required],
+    horas: new FormControl<number | null>(null),
+    minutos: new FormControl<number | null>(null),
   });
 
   ngOnInit() {
@@ -50,9 +52,12 @@ export class ReceitaFormulario implements OnInit {
           }
           this.versao = versao;
           this.formulario.setValue({
-            ...dados,
+            titulo: dados.titulo,
+            descricao: dados.descricao,
             ingredientes: dados.ingredientes.join('\n'),
             etapas: dados.etapas.join('\n'),
+            horas: dados.tempoPreparo ? Math.floor(dados.tempoPreparo.minutosTotais / 60) : null,
+            minutos: dados.tempoPreparo ? dados.tempoPreparo.minutosTotais % 60 : null,
           });
           this.pronto.set(true);
         },
@@ -71,10 +76,18 @@ export class ReceitaFormulario implements OnInit {
       descricao: campos.descricao.trim(),
       ingredientes: this.linhasDe(campos.ingredientes),
       etapas: this.linhasDe(campos.etapas),
+      horas: campos.horas,
+      minutos: campos.minutos,
     };
 
     if (this.formulario.invalid || !dados.ingredientes.length || !dados.etapas.length) {
       this.falha.set('Informe pelo menos um ingrediente e uma etapa de preparo.');
+      return;
+    }
+
+    if ((dados.horas !== null && (!Number.isInteger(dados.horas) || dados.horas < 0 || dados.horas > 99))
+        || (dados.minutos !== null && (!Number.isInteger(dados.minutos) || dados.minutos < 0 || dados.minutos > 59))) {
+      this.falha.set('Informe horas inteiras de 0 a 99 e minutos inteiros de 0 a 59.');
       return;
     }
 

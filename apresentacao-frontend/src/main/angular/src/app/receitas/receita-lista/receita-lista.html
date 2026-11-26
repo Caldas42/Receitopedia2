@@ -24,6 +24,9 @@
       @for (receita of receitas(); track receita.id) {
         <li class="superficie cartao-receita">
           <h2><a [routerLink]="['/receitas', receita.id]">{{ receita.titulo || 'Receita sem título' }}</a></h2>
+          @if (formatarTempo(receita.tempoMinutos); as tempo) {
+            <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
+          }
           @if (receita.descricao) {
             <p>{{ receita.descricao }}</p>
           }

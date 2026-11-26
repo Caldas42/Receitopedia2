@@ -35,6 +35,22 @@
         <div class="form-text" id="ajuda-etapas">Escreva uma etapa por linha, na ordem do preparo.</div>
       </div>
 
+      <fieldset class="mb-4">
+        <legend class="form-label fs-6">Tempo de preparo <span class="text-secondary">(opcional)</span></legend>
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label for="horas" class="form-label">Horas</label>
+            <input type="number" class="form-control" id="horas" formControlName="horas"
+                   min="0" max="99" step="1" />
+          </div>
+          <div class="col-sm-4">
+            <label for="minutos" class="form-label">Minutos</label>
+            <input type="number" class="form-control" id="minutos" formControlName="minutos"
+                   min="0" max="59" step="1" />
+          </div>
+        </div>
+      </fieldset>
+
       @if (falha()) {
         <p class="alert alert-danger" role="alert">{{ falha() }}</p>
       }

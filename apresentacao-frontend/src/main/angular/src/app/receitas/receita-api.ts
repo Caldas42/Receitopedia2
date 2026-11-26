@@ -6,18 +6,30 @@ export interface DadosReceita {
   descricao: string;
   ingredientes: string[];
   etapas: string[];
+  horas: number | null;
+  minutos: number | null;
+}
+
+export function formatarTempo(minutosTotais: number | null): string | null {
+  if (minutosTotais === null) {
+    return null;
+  }
+  const horas = Math.floor(minutosTotais / 60);
+  const minutos = minutosTotais % 60;
+  return [horas ? horas + 'h' : '', minutos || !horas ? minutos + 'min' : ''].filter(Boolean).join(' ');
 }
 
 export interface ReceitaResumo {
   id: string;
   titulo: string;
   descricao: string;
+  tempoMinutos: number | null;
 }
 
 export interface Receita {
   id: string;
   versao: number;
-  dados: DadosReceita;
+  dados: Omit<DadosReceita, 'horas' | 'minutos'> & { tempoPreparo: { minutosTotais: number } | null };
   dono: { id: string; nomeUsuario: string } | null;
 }
 

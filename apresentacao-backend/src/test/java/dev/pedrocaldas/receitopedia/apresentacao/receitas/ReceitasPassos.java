@@ -239,6 +239,31 @@ public class ReceitasPassos {
         assertThat(consultar().path("dados").path("titulo").asText()).isEmpty();
     }
 
+    @Quando("cadastro uma receita com {int} minutos e sem horas")
+    public void cadastrarSoMinutos(int minutos) {
+        var corpo = formulario("Salada", INGREDIENTES);
+        corpo.put("minutos", minutos);
+        var criada = http.escrever(RECEITAS, POST, corpo);
+        assertThat(criada.getStatusCode()).isEqualTo(CREATED);
+        id = criada.getBody().path("id").asText();
+    }
+
+    @Então("o tempo consta como {int} minutos no detalhe e na lista")
+    public void conferirTempo(int minutos) {
+        assertThat(consultar().path("dados").path("tempoPreparo").path("minutosTotais").asInt()).isEqualTo(minutos);
+        assertThat(http.ler(RECEITAS).getBody()).anySatisfy(receita -> {
+            assertThat(receita.path("id").asText()).isEqualTo(id);
+            assertThat(receita.path("tempoMinutos").asInt()).isEqualTo(minutos);
+        });
+    }
+
+    @Então("horas fracionárias são rejeitadas")
+    public void rejeitarHorasFracionarias() {
+        var corpo = formulario("Salada", INGREDIENTES);
+        corpo.put("horas", 1.5);
+        assertThat(http.escrever(RECEITAS, POST, corpo).getStatusCode()).isEqualTo(BAD_REQUEST);
+    }
+
     private JsonNode consultar() {
         var consulta = http.ler(caminhoReceita());
         assertThat(consulta.getStatusCode()).isEqualTo(OK);

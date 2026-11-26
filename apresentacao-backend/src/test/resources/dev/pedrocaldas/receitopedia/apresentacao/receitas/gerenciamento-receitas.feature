@@ -34,3 +34,8 @@ Funcionalidade: Gerenciamento de receitas
   Cenário: Adicionar receita sem título ou descrição
     Quando cadastro ingredientes e modo de preparo sem título
     Então o título fica vazio no detalhe da receita
+
+  Cenário: Usar somente minutos no tempo de preparo
+    Quando cadastro uma receita com 45 minutos e sem horas
+    Então o tempo consta como 45 minutos no detalhe e na lista
+    E horas fracionárias são rejeitadas

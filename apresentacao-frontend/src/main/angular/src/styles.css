@@ -211,3 +211,8 @@ h2 {
 .formulario-conta {
   max-width: 470px;
 }
+
+.tempo-receita {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
