@@ -15,8 +15,11 @@ import dev.pedrocaldas.receitopedia.aplicacao.eventos.ProcessadorEvento;
 class ProcessarEventoChat implements ProcessadorEvento {
     private final JdbcTemplate jdbc;
 
-    ProcessarEventoChat(JdbcTemplate jdbc) {
+    private final MiniaturasChat miniaturas;
+
+    ProcessarEventoChat(JdbcTemplate jdbc, MiniaturasChat miniaturas) {
         this.jdbc = jdbc;
+        this.miniaturas = miniaturas;
     }
 
     @Override
@@ -29,12 +32,21 @@ class ProcessarEventoChat implements ProcessadorEvento {
         if (!ENVIADA.equals(evento.tipo())) {
             return;
         }
-        jdbc.queryForObject("select id from chat_conversa where id = ? for update", UUID.class, evento.agregado());
         var pendentes = jdbc.queryForList("""
                 select id from chat_mensagem where conversa_id = ? and not processada
                   and sequencia <= (select sequencia from chat_mensagem where id = ? and conversa_id = ?)
                 order by sequencia
                 """, UUID.class, evento.agregado(), evento.referencia(), evento.agregado());
+        for (UUID mensagem : pendentes) {
+            var anexos = jdbc.queryForList("""
+                    select a.id from chat_anexo a join chat_mensagem m on m.id = a.mensagem_id
+                    where m.id = ? and not m.apagada and a.tipo in ('JPEG', 'PNG') order by a.id
+                    """, UUID.class, mensagem);
+            for (UUID anexo : miniaturas.preparar(anexos)) {
+                jdbc.update("update chat_anexo set miniatura = true where id = ?", anexo);
+            }
+        }
+        jdbc.queryForObject("select id from chat_conversa where id = ? for update", UUID.class, evento.agregado());
         for (UUID mensagem : pendentes) {
             jdbc.update("""
                     insert into chat_recibo (mensagem_id, usuario_id, entregue_em)

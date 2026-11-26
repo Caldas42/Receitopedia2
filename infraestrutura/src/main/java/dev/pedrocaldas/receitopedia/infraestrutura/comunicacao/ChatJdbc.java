@@ -57,15 +57,18 @@ class ChatJdbc implements ConversasRepositorio {
     private final NamedParameterJdbcTemplate consultas;
     private final RegistroEventos eventos;
     private final FotosEmDisco arquivos;
+    private final MiniaturasChat miniaturas;
 
     @PersistenceContext
     private EntityManager entidades;
 
-    ChatJdbc(JdbcTemplate jdbc, NamedParameterJdbcTemplate consultas, RegistroEventos eventos, FotosEmDisco arquivos) {
+    ChatJdbc(JdbcTemplate jdbc, NamedParameterJdbcTemplate consultas, RegistroEventos eventos, FotosEmDisco arquivos,
+            MiniaturasChat miniaturas) {
         this.jdbc = jdbc;
         this.consultas = consultas;
         this.eventos = eventos;
         this.arquivos = arquivos;
+        this.miniaturas = miniaturas;
     }
 
     @Override
@@ -351,6 +354,12 @@ class ChatJdbc implements ConversasRepositorio {
                 """, String.class, id, conversa, ator);
         if (tipos.isEmpty()) {
             throw new ConversaIndisponivel();
+        }
+        if (miniatura) {
+            var imagem = miniaturas.ler(id);
+            if (imagem.isPresent()) {
+                return new DadosChat.Arquivo(TipoFoto.JPEG.mime(), imagem.get());
+            }
         }
         byte[] bytes = arquivos.ler(id).orElseThrow(ConversaIndisponivel::new);
         return new DadosChat.Arquivo(TipoFoto.valueOf(tipos.get(0)).mime(), bytes);
