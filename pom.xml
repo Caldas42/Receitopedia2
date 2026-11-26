@@ -18,12 +18,9 @@
 		<module>aplicacao</module>
 		<module>apresentacao-backend</module>
 		<module>apresentacao-frontend</module>
-		<module>apresentacao-vaadin</module>		
 		<module>dominio-receitas</module>
 		<module>dominio-comunicacao</module>
 		<module>dominio-administracao</module>
-		<module>dominio-analise</module>
-		<module>dominio-compartilhado</module>
 		<module>infraestrutura</module>
 		<module>pai</module>
 	</modules>
