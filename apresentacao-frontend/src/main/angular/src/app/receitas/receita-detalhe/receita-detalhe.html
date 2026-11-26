@@ -18,18 +18,25 @@
   <article aria-labelledby="titulo-receita">
     <header class="cabecalho-pagina">
       <h1 id="titulo-receita">{{ receitaAtual.dados.titulo }}</h1>
-      <div class="acoes">
-        <a class="btn btn-outline-secondary" [routerLink]="['/receitas', receitaAtual.id, 'editar']">
-          <i class="bi bi-pencil" aria-hidden="true"></i> Editar
-        </a>
-        @if (!confirmando()) {
-          <button class="btn btn-outline-danger" type="button" (click)="confirmando.set(true)"
-                  [disabled]="conflito()">
-            Remover
-          </button>
-        }
-      </div>
+      @if (receitaAtual.dono && receitaAtual.dono.id === sessao.usuario()?.id) {
+        <div class="acoes">
+          <a class="btn btn-outline-secondary" [routerLink]="['/receitas', receitaAtual.id, 'editar']">
+            <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+          </a>
+          @if (!confirmando()) {
+            <button class="btn btn-outline-danger" type="button" (click)="confirmando.set(true)"
+                    [disabled]="conflito()">
+              Remover
+            </button>
+          }
+        </div>
+      }
     </header>
+    @if (receitaAtual.dono; as dono) {
+      <p class="text-secondary">Por {{ dono.nomeUsuario }}</p>
+    } @else {
+      <p class="text-secondary">Receita sem autor associado</p>
+    }
     @if (receitaAtual.dados.descricao) {
       <p class="descricao-receita">{{ receitaAtual.dados.descricao }}</p>
     }

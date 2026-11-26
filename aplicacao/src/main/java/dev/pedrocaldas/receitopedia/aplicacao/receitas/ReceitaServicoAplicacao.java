@@ -3,6 +3,7 @@ package dev.pedrocaldas.receitopedia.aplicacao.receitas;
 import java.util.List;
 import java.util.UUID;
 
+import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
 
@@ -13,8 +14,8 @@ public class ReceitaServicoAplicacao {
         this.repositorio = repositorio;
     }
 
-    public Receita adicionar(DadosReceita dados) {
-        return repositorio.adicionar(Receita.nova(dados));
+    public Receita adicionar(DadosReceita dados, AutorReceita dono) {
+        return repositorio.adicionar(Receita.nova(dados, dono));
     }
 
     public List<ReceitaResumo> listar() {
@@ -25,12 +26,12 @@ public class ReceitaServicoAplicacao {
         return repositorio.encontrar(id).orElseThrow(ReceitaNaoEncontrada::new);
     }
 
-    public Receita editar(UUID id, Long versao, DadosReceita dados) {
-        return repositorio.editar(id, validarVersao(versao), dados);
+    public Receita editar(UUID id, Long versao, UUID usuarioId, DadosReceita dados) {
+        return repositorio.editar(id, validarVersao(versao), usuarioId, dados);
     }
 
-    public void remover(UUID id, Long versao) {
-        repositorio.remover(id, validarVersao(versao));
+    public void remover(UUID id, Long versao, UUID usuarioId) {
+        repositorio.remover(id, validarVersao(versao), usuarioId);
     }
 
     private static long validarVersao(Long versao) {

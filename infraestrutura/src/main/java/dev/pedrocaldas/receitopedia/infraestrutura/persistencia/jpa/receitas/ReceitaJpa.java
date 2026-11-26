@@ -4,13 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
@@ -21,6 +25,10 @@ import jakarta.persistence.Version;
 public class ReceitaJpa {
     @Id
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dono_id", updatable = false)
+    private UsuarioJpa dono;
 
     @Version
     private long versao;
@@ -46,8 +54,9 @@ public class ReceitaJpa {
     protected ReceitaJpa() {
     }
 
-    ReceitaJpa(Receita receita) {
+    ReceitaJpa(Receita receita, UsuarioJpa dono) {
         id = receita.id();
+        this.dono = dono;
         preencher(receita.dados());
     }
 
@@ -64,7 +73,11 @@ public class ReceitaJpa {
         return versao;
     }
 
+    AutorReceita autor() {
+        return dono == null ? null : new AutorReceita(dono.id(), dono.nomeUsuario());
+    }
+
     Receita paraDominio() {
-        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas));
+        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas), autor());
     }
 }

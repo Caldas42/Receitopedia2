@@ -14,7 +14,7 @@ public interface ReceitaRepositorio {
 
     Optional<Receita> encontrar(UUID id);
 
-    Receita editar(UUID id, long versao, DadosReceita dados);
+    Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados);
 
-    void remover(UUID id, long versao);
+    void remover(UUID id, long versao, UUID usuarioId);
 }

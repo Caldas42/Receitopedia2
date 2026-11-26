@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { SessaoApi } from '../../contas/sessao-api';
 import { mensagemDeErro, Receita, ReceitaApi } from '../receita-api';
 
 @Component({
@@ -16,6 +17,7 @@ export class ReceitaDetalhe implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private id = '';
 
+  protected readonly sessao = inject(SessaoApi);
   protected readonly receita = signal<Receita | null>(null);
   protected readonly carregando = signal(true);
   protected readonly confirmando = signal(false);

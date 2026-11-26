@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +23,10 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaDesatualizada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaServicoAplicacao;
+import dev.pedrocaldas.receitopedia.apresentacao.usuarios.UsuarioPrincipal;
+import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.ReceitaAcessoNegado;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
 
 @RestController
@@ -35,8 +39,8 @@ public class ReceitaControlador {
     }
 
     @PostMapping
-    public ResponseEntity<Receita> adicionar(@RequestBody Formulario formulario) {
-        Receita receita = servico.adicionar(formulario.dados());
+    public ResponseEntity<Receita> adicionar(@RequestBody Formulario formulario, @AuthenticationPrincipal UsuarioPrincipal usuario) {
+        Receita receita = servico.adicionar(formulario.dados(), new AutorReceita(usuario.id(), usuario.nomeUsuario()));
         return ResponseEntity.created(URI.create("/backend/receitas/" + receita.id())).body(receita);
     }
 
@@ -51,13 +55,15 @@ public class ReceitaControlador {
     }
 
     @PutMapping("/{id}")
-    public Receita editar(@PathVariable UUID id, @RequestBody Formulario formulario) {
-        return servico.editar(id, formulario.versao(), formulario.dados());
+    public Receita editar(@PathVariable UUID id, @RequestBody Formulario formulario,
+            @AuthenticationPrincipal UsuarioPrincipal usuario) {
+        return servico.editar(id, formulario.versao(), usuario.id(), formulario.dados());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> remover(@PathVariable UUID id, @RequestParam Long versao) {
-        servico.remover(id, versao);
+    public ResponseEntity<Void> remover(@PathVariable UUID id, @RequestParam Long versao,
+            @AuthenticationPrincipal UsuarioPrincipal usuario) {
+        servico.remover(id, versao, usuario.id());
         return ResponseEntity.noContent().build();
     }
 
@@ -69,6 +75,11 @@ public class ReceitaControlador {
     @ExceptionHandler(ReceitaNaoEncontrada.class)
     ProblemDetail receitaNaoEncontrada(ReceitaNaoEncontrada erro) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, erro.getMessage());
+    }
+
+    @ExceptionHandler(ReceitaAcessoNegado.class)
+    ProblemDetail acessoNegado(ReceitaAcessoNegado erro) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, erro.getMessage());
     }
 
     @ExceptionHandler(ReceitaDesatualizada.class)

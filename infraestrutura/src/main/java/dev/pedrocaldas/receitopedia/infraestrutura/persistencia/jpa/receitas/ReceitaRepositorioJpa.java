@@ -12,8 +12,10 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaDesatualizada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaRepositorio;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo;
+import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.OptimisticLockException;
@@ -28,7 +30,7 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
     @Override
     @Transactional
     public Receita adicionar(Receita receita) {
-        ReceitaJpa registro = new ReceitaJpa(receita);
+        ReceitaJpa registro = new ReceitaJpa(receita, entidades.getReference(UsuarioJpa.class, receita.dono().id()));
         entidades.persist(registro);
         entidades.flush();
         return registro.paraDominio();
@@ -52,8 +54,8 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
 
     @Override
     @Transactional
-    public Receita editar(UUID id, long versao, DadosReceita dados) {
-        ReceitaJpa registro = carregarNaVersao(id, versao, LockModeType.NONE);
+    public Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados) {
+        ReceitaJpa registro = carregarNaVersao(id, versao, usuarioId, LockModeType.NONE);
         registro.preencher(dados);
         confirmarAlteracao();
         return registro.paraDominio();
@@ -61,16 +63,17 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
 
     @Override
     @Transactional
-    public void remover(UUID id, long versao) {
-        entidades.remove(carregarNaVersao(id, versao, LockModeType.PESSIMISTIC_WRITE));
+    public void remover(UUID id, long versao, UUID usuarioId) {
+        entidades.remove(carregarNaVersao(id, versao, usuarioId, LockModeType.PESSIMISTIC_WRITE));
         confirmarAlteracao();
     }
 
-    private ReceitaJpa carregarNaVersao(UUID id, long versao, LockModeType bloqueio) {
+    private ReceitaJpa carregarNaVersao(UUID id, long versao, UUID usuarioId, LockModeType bloqueio) {
         ReceitaJpa registro = entidades.find(ReceitaJpa.class, id, bloqueio);
         if (registro == null) {
             throw new ReceitaNaoEncontrada();
         }
+        AutorReceita.exigirAutoria(registro.autor(), usuarioId);
         if (registro.versao() != versao) {
             throw new ReceitaDesatualizada();
         }

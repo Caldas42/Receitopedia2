@@ -6,6 +6,9 @@ import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static dev.pedrocaldas.receitopedia.apresentacao.ClienteReceitopedia.SENHA_TESTE;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
@@ -18,7 +21,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,11 +41,15 @@ public class ReceitasPassos {
 
     @LocalServerPort
     private int porta;
+    @Autowired
+    private JdbcTemplate jdbc;
     private ClienteReceitopedia http;
+    private String nomeDono;
 
     @Before
     public void iniciarCliente() {
         http = new ClienteReceitopedia(porta);
+        nomeDono = http.criarContaESessao();
     }
 
     private String id;
@@ -160,6 +169,42 @@ public class ReceitasPassos {
         var exclusao = http.escrever(caminhoReceita() + "?versao=" + versaoOriginal, DELETE, null);
         assertThat(exclusao.getStatusCode()).isEqualTo(CONFLICT);
         consultar();
+    }
+
+    @Então("a receita é pública e identifica seu dono")
+    public void conferirAutoriaPublica() {
+        var anonimo = new ClienteReceitopedia(porta);
+        var receita = anonimo.ler(caminhoReceita());
+        assertThat(receita.getStatusCode()).isEqualTo(OK);
+        assertThat(receita.getBody().path("dono").path("nomeUsuario").asText()).isEqualTo(nomeDono);
+    }
+
+    @Então("um visitante precisa entrar para criar receitas")
+    public void exigirLogin() {
+        var anonimo = new ClienteReceitopedia(porta);
+        assertThat(anonimo.escrever(RECEITAS, POST, formulario("Outra receita", INGREDIENTES))
+                .getStatusCode()).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Então("outro usuário e um administrador recebem 403 ao editar ou remover a receita")
+    public void autorizarApenasDono() {
+        var outro = new ClienteReceitopedia(porta);
+        outro.criarContaESessao();
+        var admin = new ClienteReceitopedia(porta);
+        var nome = admin.criarContaESessao();
+        String email = (nome + "@example.com").toLowerCase(java.util.Locale.ROOT);
+        jdbc.update("update usuario set papel = 'ADMIN' where email = ?", email);
+        assertThat(admin.escrever("/backend/logout", POST, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(admin.entrar(email, SENHA_TESTE).getStatusCode()).isEqualTo(NO_CONTENT);
+
+        var corpo = formulario("Alteração indevida", INGREDIENTES);
+        corpo.put("versao", versao);
+        for (var cliente : List.of(outro, admin)) {
+            assertThat(cliente.escrever(caminhoReceita(), PUT, corpo).getStatusCode()).isEqualTo(FORBIDDEN);
+            assertThat(cliente.escrever(caminhoReceita() + "?versao=" + versao, DELETE, null)
+                    .getStatusCode()).isEqualTo(FORBIDDEN);
+        }
+        consultarTitulo(titulo);
     }
 
     private JsonNode consultar() {

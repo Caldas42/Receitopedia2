@@ -18,6 +18,7 @@ export interface Receita {
   id: string;
   versao: number;
   dados: DadosReceita;
+  dono: { id: string; nomeUsuario: string } | null;
 }
 
 @Injectable({ providedIn: 'root' })

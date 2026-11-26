@@ -20,3 +20,9 @@ Funcionalidade: Gerenciamento de receitas
     Então apenas uma edição é aceita e a outra retorna conflito
     E os ingredientes da edição aceita ficam salvos
     E uma exclusão baseada na versão antiga é recusada
+
+  Cenário: Somente o dono pode modificar uma receita
+    Dado que cadastrei uma receita com o título "Bolo de milho"
+    Então a receita é pública e identifica seu dono
+    E um visitante precisa entrar para criar receitas
+    E outro usuário e um administrador recebem 403 ao editar ou remover a receita

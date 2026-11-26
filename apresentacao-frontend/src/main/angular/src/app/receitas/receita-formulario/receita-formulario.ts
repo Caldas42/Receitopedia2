@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { SessaoApi } from '../../contas/sessao-api';
 import { DadosReceita, mensagemDeErro, ReceitaApi } from '../receita-api';
 
 @Component({
@@ -11,6 +12,7 @@ import { DadosReceita, mensagemDeErro, ReceitaApi } from '../receita-api';
   templateUrl: './receita-formulario.html',
 })
 export class ReceitaFormulario implements OnInit {
+  private readonly sessao = inject(SessaoApi);
   private readonly api = inject(ReceitaApi);
   private readonly rota = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -41,7 +43,11 @@ export class ReceitaFormulario implements OnInit {
         finalize(() => this.carregando.set(false)),
       )
       .subscribe({
-        next: ({ dados, versao }) => {
+        next: ({ dados, versao, dono }) => {
+          if (!dono || dono.id !== this.sessao.usuario()?.id) {
+            this.falha.set('Somente o dono pode editar esta receita.');
+            return;
+          }
           this.versao = versao;
           this.formulario.setValue({
             ...dados,
