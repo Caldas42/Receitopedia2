@@ -5,7 +5,10 @@ import java.util.List;
 public record DadosReceita(String titulo, String descricao, List<String> ingredientes,
         List<String> etapas) {
     public DadosReceita {
-        titulo = textoObrigatorio(titulo, 120, "Título");
+        titulo = titulo == null ? "" : titulo.strip();
+        if (!titulo.isEmpty()) {
+            titulo = textoObrigatorio(titulo, 120, "Título");
+        }
         descricao = descricao == null ? "" : descricao.strip();
         if (descricao.length() > 1000) {
             throw new IllegalArgumentException("A descrição deve ter até 1000 caracteres.");

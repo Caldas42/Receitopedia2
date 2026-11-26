@@ -17,7 +17,7 @@
 @if (carregando() ? null : receita(); as receitaAtual) {
   <article aria-labelledby="titulo-receita">
     <header class="cabecalho-pagina">
-      <h1 id="titulo-receita">{{ receitaAtual.dados.titulo }}</h1>
+      <h1 id="titulo-receita">{{ receitaAtual.dados.titulo || 'Receita sem título' }}</h1>
       @if (receitaAtual.dono && receitaAtual.dono.id === sessao.usuario()?.id) {
         <div class="acoes">
           <a class="btn btn-outline-secondary" [routerLink]="['/receitas', receitaAtual.id, 'editar']">

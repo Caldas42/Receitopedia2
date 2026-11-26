@@ -224,6 +224,21 @@ public class ReceitasPassos {
         assertThat(anonimo.ler(RECEITAS + "/minhas").getStatusCode()).isEqualTo(UNAUTHORIZED);
     }
 
+    @Quando("cadastro ingredientes e modo de preparo sem título")
+    public void cadastrarSemTitulo() {
+        var corpo = formulario("", INGREDIENTES);
+        corpo.remove("titulo");
+        corpo.remove("descricao");
+        var criada = http.escrever(RECEITAS, POST, corpo);
+        assertThat(criada.getStatusCode()).isEqualTo(CREATED);
+        id = criada.getBody().path("id").asText();
+    }
+
+    @Então("o título fica vazio no detalhe da receita")
+    public void tituloOpcional() {
+        assertThat(consultar().path("dados").path("titulo").asText()).isEmpty();
+    }
+
     private JsonNode consultar() {
         var consulta = http.ler(caminhoReceita());
         assertThat(consulta.getStatusCode()).isEqualTo(OK);

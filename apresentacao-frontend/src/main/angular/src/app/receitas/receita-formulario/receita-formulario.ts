@@ -26,7 +26,7 @@ export class ReceitaFormulario implements OnInit {
   protected readonly falha = signal('');
   protected readonly conflito = signal(false);
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
-    titulo: ['', [Validators.required, Validators.maxLength(120)]],
+    titulo: ['', Validators.maxLength(120)],
     descricao: ['', Validators.maxLength(1000)],
     ingredientes: ['', Validators.required],
     etapas: ['', Validators.required],
@@ -73,8 +73,8 @@ export class ReceitaFormulario implements OnInit {
       etapas: this.linhasDe(campos.etapas),
     };
 
-    if (this.formulario.invalid || !dados.titulo || !dados.ingredientes.length || !dados.etapas.length) {
-      this.falha.set('Informe um título, pelo menos um ingrediente e uma etapa de preparo.');
+    if (this.formulario.invalid || !dados.ingredientes.length || !dados.etapas.length) {
+      this.falha.set('Informe pelo menos um ingrediente e uma etapa de preparo.');
       return;
     }
 

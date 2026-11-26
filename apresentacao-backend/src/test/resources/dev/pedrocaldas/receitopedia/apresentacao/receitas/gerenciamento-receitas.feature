@@ -30,3 +30,7 @@ Funcionalidade: Gerenciamento de receitas
   Cenário: Ver as próprias receitas em uma aba separada
     Dado que cadastrei uma receita com o título "Receita pessoal"
     Então Minhas Receitas lista somente as receitas do usuário logado
+
+  Cenário: Adicionar receita sem título ou descrição
+    Quando cadastro ingredientes e modo de preparo sem título
+    Então o título fica vazio no detalhe da receita
