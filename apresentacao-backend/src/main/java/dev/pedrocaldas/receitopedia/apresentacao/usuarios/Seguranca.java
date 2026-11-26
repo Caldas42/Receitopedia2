@@ -58,6 +58,8 @@ class Seguranca {
                         .requestMatchers("/backend/sessao", "/backend/receitas/minhas").authenticated()
                         .requestMatchers(HttpMethod.POST, "/backend/receitas").authenticated()
                         .requestMatchers(HttpMethod.POST, "/backend/categorias").hasRole(Papel.ADMIN.name())
+                        .requestMatchers(HttpMethod.PUT, "/backend/categorias/*").hasRole(Papel.ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE, "/backend/categorias/*").hasRole(Papel.ADMIN.name())
                         .requestMatchers(HttpMethod.PUT, "/backend/receitas/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/backend/receitas/*").authenticated()
                         .anyRequest().permitAll())

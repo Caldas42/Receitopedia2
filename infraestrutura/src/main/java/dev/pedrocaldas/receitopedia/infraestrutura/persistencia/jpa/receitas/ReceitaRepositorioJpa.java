@@ -48,6 +48,7 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
     @Override
     @Transactional
     public Receita adicionar(Receita receita, AlteracaoFotos fotos, SelecaoCategorias categorias) {
+        protegerSelecao(categorias);
         ReceitaJpa registro = new ReceitaJpa(receita, entidades.getReference(UsuarioJpa.class, receita.dono().id()));
         if (fotos != null) {
             registro.atualizarFotos(fotos.selecao().aplicar(List.of()));
@@ -136,6 +137,7 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
     @Transactional
     public Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos,
             SelecaoCategorias categorias) {
+        protegerSelecao(categorias);
         ReceitaJpa registro = carregarNaVersao(id, versao, usuarioId, LockModeType.NONE);
         atribuirCategorias(registro, categorias);
         registro.preencher(dados);
@@ -160,6 +162,12 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
         entidades.remove(registro);
         confirmarAlteracao();
         limpeza.removerAposCommit(fotos);
+    }
+
+    private void protegerSelecao(SelecaoCategorias selecao) {
+        if (selecao != null && !selecao.ids().isEmpty()) {
+            CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_READ);
+        }
     }
 
     private void atribuirCategorias(ReceitaJpa registro, SelecaoCategorias selecao) {

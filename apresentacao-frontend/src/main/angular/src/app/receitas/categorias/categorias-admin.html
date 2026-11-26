@@ -1,7 +1,7 @@
 <section aria-labelledby="categorias-titulo">
   <h1 id="categorias-titulo" class="mb-4">Categorias</h1>
   <form class="superficie mb-4" (submit)="$event.preventDefault(); adicionar()">
-    <fieldset [disabled]="salvando()">
+    <fieldset [disabled]="salvando() || carregando()">
       <label class="form-label" for="nome-categoria">Nome da categoria</label>
       <div class="d-flex flex-wrap gap-2">
         <input class="form-control flex-fill w-auto" id="nome-categoria" [formControl]="nome"
@@ -17,17 +17,64 @@
 
   <div class="superficie">
     <h2>Categorias existentes</h2>
+    @if (feedback()) {
+      <p class="text-success" role="status">{{ feedback() }}</p>
+    }
+    @if (falhaAcao()) {
+      <p class="text-danger" role="alert">{{ falhaAcao() }}</p>
+    }
     @if (carregando()) {
       <p role="status" class="mb-0">Carregando categorias…</p>
     } @else if (falhaLista()) {
       <p role="alert">Não foi possível carregar as categorias.</p>
       <button type="button" class="btn btn-outline-secondary" (click)="carregar()">Tentar novamente</button>
     } @else if (categorias().length) {
-      <ul class="mb-0">
+      <p class="form-text">Use Subir e Descer para mudar a ordem no formulário de receitas.</p>
+      <ol class="list-group list-group-flush mb-0">
         @for (categoria of categorias(); track categoria.id) {
-          <li>{{ categoria.nome }}</li>
+          <li class="list-group-item px-0 bg-transparent">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <span class="fw-semibold text-break">{{ categoria.nome }}</span>
+              <div class="d-flex gap-2 flex-wrap" role="group" [attr.aria-label]="'Ações para ' + categoria.nome">
+                <button class="btn btn-outline-secondary btn-sm" type="button"
+                        [disabled]="salvando() || editando() !== null || confirmandoRemocao() !== null || $first"
+                        [attr.aria-label]="'Subir ' + categoria.nome" (click)="mover(categoria, -1)">Subir</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button"
+                        [disabled]="salvando() || editando() !== null || confirmandoRemocao() !== null || $last"
+                        [attr.aria-label]="'Descer ' + categoria.nome" (click)="mover(categoria, 1)">Descer</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="salvando()"
+                        [attr.aria-label]="'Editar ' + categoria.nome" (click)="iniciarEdicao(categoria)">Editar</button>
+                <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="salvando()"
+                        [attr.aria-label]="'Remover ' + categoria.nome" (click)="iniciarRemocao(categoria)">Remover</button>
+              </div>
+            </div>
+
+            @if (editando() === categoria.id) {
+              <form class="mt-3" (submit)="$event.preventDefault(); editar(categoria)">
+                <fieldset [disabled]="salvando()">
+                  <label for="novo-nome" class="form-label">Novo nome</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    <input id="novo-nome" class="form-control flex-fill w-auto" [formControl]="novoNome" />
+                    <button class="btn btn-primary" type="submit">Salvar nome</button>
+                    <button class="btn btn-outline-secondary" type="button" (click)="cancelarAcao()">Cancelar</button>
+                  </div>
+                </fieldset>
+              </form>
+            }
+            @if (confirmandoRemocao() === categoria.id) {
+              <div class="mt-3" role="group" [attr.aria-label]="'Confirmar remoção de ' + categoria.nome">
+                <p>Remover esta categoria? Ela também será retirada das receitas que a usam.</p>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-danger" type="button" [disabled]="salvando()"
+                          (click)="remover(categoria)">Confirmar remoção</button>
+                  <button class="btn btn-outline-secondary" type="button" [disabled]="salvando()"
+                          (click)="cancelarAcao()">Cancelar</button>
+                </div>
+              </div>
+            }
+          </li>
         }
-      </ul>
+      </ol>
     } @else {
       <p class="mb-0">Nenhuma categoria cadastrada.</p>
     }

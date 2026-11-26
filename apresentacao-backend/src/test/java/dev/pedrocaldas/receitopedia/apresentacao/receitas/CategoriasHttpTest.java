@@ -2,16 +2,19 @@ package dev.pedrocaldas.receitopedia.apresentacao.receitas;
 
 import static dev.pedrocaldas.receitopedia.apresentacao.ClienteReceitopedia.SENHA_TESTE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -175,6 +178,86 @@ class CategoriasHttpTest {
         rejeitarTags(dono, ids, "até 5 categorias");
         rejeitarTags(dono, List.of(ids.get(0), ids.get(0)), "sem repetição");
         rejeitarTags(dono, List.of(UUID.randomUUID().toString()), "não existem");
+    }
+
+    @Test
+    void restringeEdicaoRemocaoEOrdemAAdministradores() {
+        var admin = entrarComoAdmin();
+        String id = idDe(adicionar(admin, "Cadastro protegido"));
+        var anonimo = new ClienteReceitopedia(porta);
+        var usuario = new ClienteReceitopedia(porta);
+        usuario.criarContaESessao();
+
+        for (var cliente : List.of(anonimo, usuario)) {
+            var esperado = cliente == anonimo ? UNAUTHORIZED : FORBIDDEN;
+            assertThat(cliente.escrever(CATEGORIAS + "/" + id, PUT, Map.of("nome", "Outro nome"))
+                    .getStatusCode()).isEqualTo(esperado);
+            assertThat(cliente.escrever(CATEGORIAS + "/" + id, DELETE, null).getStatusCode()).isEqualTo(esperado);
+            assertThat(cliente.escrever(CATEGORIAS + "/ordem", PUT, Map.of("ids", List.of(id)))
+                    .getStatusCode()).isEqualTo(esperado);
+        }
+    }
+
+    @Test
+    void editaNomeEMantemReceitaAoRemoverCategoriaVinculada() {
+        var admin = entrarComoAdmin();
+        String id = idDe(adicionar(admin, "Para renomear"));
+        String outra = idDe(adicionar(admin, "Já reservada"));
+        var dono = new ClienteReceitopedia(porta);
+        dono.criarContaESessao();
+
+        var criada = dono.escrever("/backend/receitas", POST, dadosReceita(List.of(id, outra)));
+        assertThat(criada.getStatusCode()).isEqualTo(CREATED);
+        String receita = "/backend/receitas/" + idDe(criada);
+        String categoria = CATEGORIAS + "/" + id;
+
+        assertThat(admin.escrever(categoria, PUT, Map.of("nome", "JA RESERVADA")).getStatusCode())
+                .isEqualTo(CONFLICT);
+        assertThat(admin.escrever(categoria, PUT, Map.of("nome", " A ")).getStatusCode())
+                .isEqualTo(BAD_REQUEST);
+        var editada = admin.escrever(categoria, PUT, Map.of("nome", "  Pão   artesanal  "));
+        assertThat(editada.getStatusCode()).isEqualTo(OK);
+        assertThat(idDe(editada)).isEqualTo(id);
+        assertThat(dono.ler(receita).getBody().path("categorias"))
+                .anySatisfy(tag -> assertThat(tag.path("nome").asText()).isEqualTo("Pão artesanal"));
+        assertThat(dono.ler("/backend/receitas?busca=artesanal").getBody())
+                .anySatisfy(resumo -> assertThat(resumo.path("id").asText()).isEqualTo(idDe(criada)));
+
+        assertThat(admin.escrever(categoria, DELETE, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(admin.escrever(categoria, DELETE, null).getStatusCode()).isEqualTo(NOT_FOUND);
+        var mantida = dono.ler(receita);
+        assertThat(mantida.getStatusCode()).isEqualTo(OK);
+        conferirTags(mantida.getBody(), outra);
+        long versaoAntiga = criada.getBody().path("versao").asLong();
+        assertThat(mantida.getBody().path("versao").asLong()).isGreaterThan(versaoAntiga);
+        var dadosAntigos = dadosReceita(List.of(id, outra));
+        dadosAntigos.put("versao", versaoAntiga);
+        assertThat(dono.escrever(receita, PUT, dadosAntigos).getStatusCode()).isEqualTo(CONFLICT);
+    }
+
+    @Test
+    void persisteOrdemPublicaERejeitaListaDesatualizadaOuRepetida() {
+        var admin = entrarComoAdmin();
+        var publico = new ClienteReceitopedia(porta);
+        String primeira = idDe(adicionar(admin, "Z de ordem"));
+        String segunda = idDe(adicionar(admin, "A de ordem"));
+        var atual = new ArrayList<String>();
+        publico.ler(CATEGORIAS).getBody().forEach(tag -> atual.add(tag.path("id").asText()));
+        assertThat(atual).endsWith(primeira, segunda);
+
+        var novaOrdem = new ArrayList<>(atual);
+        novaOrdem.remove(segunda);
+        novaOrdem.add(0, segunda);
+        var ordem = CATEGORIAS + "/ordem";
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem)).getStatusCode()).isEqualTo(OK);
+        assertThat(publico.ler(CATEGORIAS).getBody()).extracting(tag -> tag.path("id").asText())
+                .containsExactlyElementsOf(novaOrdem);
+
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", List.of(segunda, segunda))).getStatusCode())
+                .isEqualTo(BAD_REQUEST);
+        assertThat(admin.escrever(CATEGORIAS + "/" + primeira, DELETE, null).getStatusCode())
+                .isEqualTo(NO_CONTENT);
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem)).getStatusCode()).isEqualTo(CONFLICT);
     }
 
     private void rejeitarTags(ClienteReceitopedia cliente, List<String> ids, String mensagem) {

@@ -1,16 +1,22 @@
 package dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.receitas;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.CatalogoAlterado;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaDuplicada;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaRepositorio;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Categoria;
+import dev.pedrocaldas.receitopedia.dominio.receitas.OrdemCategorias;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 
 @Repository
@@ -21,10 +27,74 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
     @Override
     @Transactional
     public Categoria adicionar(Categoria categoria) {
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        long posicao = entidades.createQuery("select coalesce(max(c.posicao), -1L) + 1L from CategoriaJpa c", Long.class)
+                .getSingleResult();
+        entidades.persist(new CategoriaJpa(categoria, posicao));
+        confirmarNomeUnico();
+        return categoria;
+    }
+
+    @Override
+    @Transactional
+    public Categoria editar(Categoria categoria) {
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        carregar(categoria.id()).renomear(categoria);
+        confirmarNomeUnico();
+        return categoria;
+    }
+
+    @Override
+    @Transactional
+    public void remover(UUID id) {
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        var categoria = carregar(id);
+        entidades.createNativeQuery("""
+                update receita set versao = versao + 1
+                where id in (select receita_id from receita_categoria where categoria_id = :id)
+                """).setParameter("id", id).executeUpdate();
+        entidades.createNativeQuery("delete from receita_categoria where categoria_id = :id")
+                .setParameter("id", id).executeUpdate();
+        entidades.remove(categoria);
+    }
+
+    @Override
+    @Transactional
+    public List<Categoria> reordenar(OrdemCategorias ordem) {
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        var catalogo = new HashMap<UUID, CategoriaJpa>();
+        registros().forEach(categoria -> catalogo.put(categoria.id(), categoria));
+        if (!ordem.correspondeAoCatalogo(catalogo.keySet())) {
+            throw new CatalogoAlterado();
+        }
+        int posicao = 0;
+        for (UUID id : ordem.ids()) {
+            catalogo.get(id).posicionar(posicao++);
+        }
+        return ordem.ids().stream().map(catalogo::get).map(CategoriaJpa::paraDominio).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Categoria> listar() {
+        return registros().stream().map(CategoriaJpa::paraDominio).toList();
+    }
+
+    private List<CategoriaJpa> registros() {
+        return entidades.createQuery("from CategoriaJpa c order by c.posicao", CategoriaJpa.class).getResultList();
+    }
+
+    private CategoriaJpa carregar(UUID id) {
+        var categoria = entidades.find(CategoriaJpa.class, id);
+        if (categoria == null) {
+            throw new CategoriaNaoEncontrada();
+        }
+        return categoria;
+    }
+
+    private void confirmarNomeUnico() {
         try {
-            entidades.persist(new CategoriaJpa(categoria));
             entidades.flush();
-            return categoria;
         } catch (ConstraintViolationException erro) {
             String restricao = String.valueOf(erro.getConstraintName()).toLowerCase(Locale.ROOT);
             if (restricao.contains("uk_categoria_nome_chave")) {
@@ -32,12 +102,5 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
             }
             throw erro;
         }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Categoria> listar() {
-        return entidades.createQuery("from CategoriaJpa c order by c.nomeChave", CategoriaJpa.class)
-                .getResultList().stream().map(CategoriaJpa::paraDominio).toList();
     }
 }

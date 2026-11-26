@@ -24,7 +24,13 @@ disponíveis apenas para leitura.
 
 ## Categorias e busca
 
-Administradores mantêm o catálogo em **Categorias**. Qualquer usuário logado
+Em **Categorias**, administradores podem criar, editar, remover e reorganizar
+as categorias com os botões **Subir** e **Descer**. A ordem é salva a cada
+movimento e define como as categorias aparecem no formulário de receitas.
+Novas categorias entram no fim da lista. Remover uma categoria também tira
+a tag das receitas associadas, que continuam disponíveis.
+
+Qualquer usuário logado
 pode vincular até cinco categorias existentes às suas receitas. O banco aplica
 a unicidade pelo nome normalizado, inclusive quando duas criações concorrem.
 
