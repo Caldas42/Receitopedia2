@@ -9,6 +9,7 @@ import { caminhoFoto, formatarTempo, mensagemDeErro, Receita, ReceitaApi } from 
   selector: 'app-receita-detalhe',
   imports: [RouterLink],
   templateUrl: './receita-detalhe.html',
+  styleUrl: './receita-detalhe.css',
 })
 export class ReceitaDetalhe implements OnInit {
   private readonly api = inject(ReceitaApi);
@@ -26,6 +27,7 @@ export class ReceitaDetalhe implements OnInit {
   protected readonly removendo = signal(false);
   protected readonly falha = signal('');
   protected readonly conflito = signal(false);
+  protected readonly fotoAmpliada = signal<{ url: string; descricao: string } | null>(null);
 
   ngOnInit() {
     this.id = this.rota.snapshot.paramMap.get('id') ?? '';
@@ -50,6 +52,11 @@ export class ReceitaDetalhe implements OnInit {
           this.falha.set(mensagemDeErro(erro, 'Não foi possível carregar a receita.'));
         },
       });
+  }
+
+  protected ampliarFoto(visor: HTMLDialogElement, url: string, descricao: string) {
+    this.fotoAmpliada.set({ url, descricao });
+    visor.showModal();
   }
 
   protected remover(receita: Receita) {

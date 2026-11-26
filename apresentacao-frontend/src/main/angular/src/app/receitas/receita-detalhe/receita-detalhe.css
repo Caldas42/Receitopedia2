@@ -1,0 +1,45 @@
+.miniatura-secundaria {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.miniatura-secundaria:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
+
+.miniatura-secundaria img {
+  display: block;
+}
+
+.visor-foto {
+  width: min(calc(100vw - 2rem), 65rem);
+  max-height: calc(100dvh - 2rem);
+  padding: 0.75rem;
+  border: 1px solid var(--borda);
+  border-radius: 0.75rem;
+  background: var(--papel);
+}
+
+.visor-foto::backdrop {
+  background: rgb(0 0 0 / 75%);
+}
+
+.visor-foto form {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.visor-foto img {
+  display: block;
+  width: 100%;
+  max-height: calc(100dvh - 7rem);
+  object-fit: contain;
+  border-radius: 0.5rem;
+}

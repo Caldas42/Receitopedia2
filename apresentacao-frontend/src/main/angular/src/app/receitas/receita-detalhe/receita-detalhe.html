@@ -65,12 +65,26 @@
         @if (receitaAtual.fotos.length > 1) {
           <ul class="grade-fotos list-unstyled mb-0">
             @for (foto of receitaAtual.fotos.slice(1); track foto.id) {
+              @let url = caminhoFoto(receitaAtual.id, foto.id);
+              @let descricao = 'Foto secundária ' + ($index + 1);
               <li>
-                <img class="foto-secundaria" [src]="caminhoFoto(receitaAtual.id, foto.id)"
-                     [alt]="'Foto secundária ' + ($index + 1)" loading="lazy" />
+                <button class="miniatura-secundaria" type="button"
+                        [attr.aria-label]="'Ampliar ' + descricao.toLowerCase()"
+                        (click)="ampliarFoto(visorFoto, url, descricao)">
+                  <img class="foto-secundaria" [src]="url" [alt]="descricao" loading="lazy" />
+                </button>
               </li>
             }
           </ul>
+          <dialog #visorFoto class="visor-foto" aria-label="Foto ampliada"
+                  (close)="fotoAmpliada.set(null)">
+            <form method="dialog">
+              <button class="btn btn-outline-secondary" type="submit">Fechar foto</button>
+            </form>
+            @if (fotoAmpliada(); as foto) {
+              <img [src]="foto.url" [alt]="foto.descricao" />
+            }
+          </dialog>
         }
       </figure>
     } @else {
