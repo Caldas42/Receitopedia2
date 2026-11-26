@@ -216,3 +216,53 @@ h2 {
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
+
+.foto-listagem,
+.foto-secundaria {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.6rem;
+}
+
+.foto-listagem {
+  margin-bottom: 0.85rem;
+}
+
+.foto-placeholder {
+  display: grid;
+  place-items: center;
+  background: #f1e7dc;
+  color: #795446;
+  font-size: 1.8rem;
+}
+
+.foto-sem-imagem {
+  margin-bottom: 1rem;
+  min-height: 6.5rem;
+}
+
+.galeria-receita {
+  display: grid;
+  gap: 1rem;
+}
+
+.foto-principal {
+  width: 100%;
+  max-height: 440px;
+  object-fit: contain;
+  border-radius: 0.6rem;
+  background: #f6efe8;
+}
+
+.grade-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr));
+  gap: 0.75rem;
+}
+
+.item-foto {
+  padding: 0.5rem;
+  border: 1px solid var(--borda);
+  border-radius: 0.6rem;
+}

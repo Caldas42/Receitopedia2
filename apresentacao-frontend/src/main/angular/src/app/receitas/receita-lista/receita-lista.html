@@ -23,6 +23,14 @@
     <ul class="grade-receitas list-unstyled">
       @for (receita of receitas(); track receita.id) {
         <li class="superficie cartao-receita">
+          @if (receita.fotoPrincipalId; as idFoto) {
+            <img class="foto-listagem" [src]="caminhoFoto(receita.id, idFoto)"
+                 [alt]="receita.titulo || 'Foto principal da receita'" loading="lazy" />
+          } @else {
+            <div class="foto-listagem foto-placeholder" role="img" aria-label="Receita sem foto">
+              <i class="bi bi-image" aria-hidden="true"></i>
+            </div>
+          }
           <h2><a [routerLink]="['/receitas', receita.id]">{{ receita.titulo || 'Receita sem título' }}</a></h2>
           @if (formatarTempo(receita.tempoMinutos); as tempo) {
             <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>

@@ -58,6 +58,27 @@
       </div>
     }
 
+    @if (receitaAtual.fotos.length) {
+      <figure class="superficie galeria-receita" aria-label="Fotos da receita">
+        <img class="foto-principal" [src]="caminhoFoto(receitaAtual.id, receitaAtual.fotos[0].id)"
+             alt="Foto principal da receita" />
+        @if (receitaAtual.fotos.length > 1) {
+          <ul class="grade-fotos list-unstyled mb-0">
+            @for (foto of receitaAtual.fotos.slice(1); track foto.id) {
+              <li>
+                <img class="foto-secundaria" [src]="caminhoFoto(receitaAtual.id, foto.id)"
+                     [alt]="'Foto secundária ' + ($index + 1)" loading="lazy" />
+              </li>
+            }
+          </ul>
+        }
+      </figure>
+    } @else {
+      <div class="superficie foto-placeholder foto-sem-imagem" role="img" aria-label="Receita sem foto">
+        <i class="bi bi-image" aria-hidden="true"></i>
+      </div>
+    }
+
     <div class="grade-detalhe">
       <section class="superficie" aria-labelledby="titulo-ingredientes">
         <h2 id="titulo-ingredientes">Ingredientes</h2>

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { SessaoApi } from '../../contas/sessao-api';
-import { formatarTempo, mensagemDeErro, Receita, ReceitaApi } from '../receita-api';
+import { caminhoFoto, formatarTempo, mensagemDeErro, Receita, ReceitaApi } from '../receita-api';
 
 @Component({
   selector: 'app-receita-detalhe',
@@ -18,6 +18,7 @@ export class ReceitaDetalhe implements OnInit {
   private id = '';
 
   protected readonly sessao = inject(SessaoApi);
+  protected readonly caminhoFoto = caminhoFoto;
   protected readonly formatarTempo = formatarTempo;
   protected readonly receita = signal<Receita | null>(null);
   protected readonly carregando = signal(true);

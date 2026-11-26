@@ -24,6 +24,7 @@ export interface ReceitaResumo {
   titulo: string;
   descricao: string;
   tempoMinutos: number | null;
+  fotoPrincipalId: string | null;
 }
 
 export interface Receita {
@@ -31,6 +32,17 @@ export interface Receita {
   versao: number;
   dados: Omit<DadosReceita, 'horas' | 'minutos'> & { tempoPreparo: { minutosTotais: number } | null };
   dono: { id: string; nomeUsuario: string } | null;
+  fotos: { id: string }[];
+}
+
+export interface FotosParaSalvar {
+  mantidas: string[];
+  arquivos: File[];
+  principal: number | null;
+}
+
+export function caminhoFoto(receitaId: string, fotoId: string): string {
+  return '/backend/receitas/' + encodeURIComponent(receitaId) + '/fotos/' + encodeURIComponent(fotoId);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,12 +62,27 @@ export class ReceitaApi {
     return this.http.get<Receita>(this.url + '/' + encodeURIComponent(id));
   }
 
-  adicionar(dados: DadosReceita) {
-    return this.http.post<Receita>(this.url, dados);
+  adicionar(dados: DadosReceita, fotos: FotosParaSalvar) {
+    return this.http.post<Receita>(this.url, this.formulario(dados, fotos));
   }
 
-  editar(id: string, versao: number, dados: DadosReceita) {
-    return this.http.put<Receita>(this.url + '/' + encodeURIComponent(id), { ...dados, versao });
+  editar(id: string, versao: number, dados: DadosReceita, fotos: FotosParaSalvar) {
+    return this.http.put<Receita>(this.url + '/' + encodeURIComponent(id), this.formulario(dados, fotos, versao));
+  }
+
+  private formulario(dados: DadosReceita, fotos: FotosParaSalvar, versao?: number): FormData {
+    const partes = new FormData();
+    const cadastro = {
+      ...dados,
+      versao,
+      fotosMantidas: fotos.mantidas,
+      fotoPrincipal: fotos.principal,
+    };
+    partes.append('receita', new Blob([JSON.stringify(cadastro)], { type: 'application/json' }));
+    for (const arquivo of fotos.arquivos) {
+      partes.append('fotos', arquivo);
+    }
+    return partes;
   }
 
   remover(id: string, versao: number) {
@@ -65,7 +92,7 @@ export class ReceitaApi {
 
 export function mensagemDeErro(erro: HttpErrorResponse, mensagemPadrao: string): string {
   const detalhe = erro.error?.detail;
-  return [400, 404, 409].includes(erro.status) && typeof detalhe === 'string'
+  return [400, 403, 404, 409, 413].includes(erro.status) && typeof detalhe === 'string'
     ? detalhe
     : mensagemPadrao;
 }

@@ -51,6 +51,35 @@
         </div>
       </fieldset>
 
+      <fieldset class="mb-4">
+        <legend class="form-label fs-6">Fotos <span class="text-secondary">(opcional)</span></legend>
+        <label for="fotos" class="form-label">Adicionar fotos</label>
+        <input class="form-control" type="file" id="fotos" accept="image/jpeg,image/png,image/webp"
+               multiple aria-describedby="ajuda-fotos" [disabled]="fotos().length === 5"
+               (change)="selecionarFotos($event)" />
+        <div id="ajuda-fotos" class="form-text">Até 5 fotos JPEG, PNG ou WebP, de no máximo 5 MB cada.</div>
+        @if (erroFotos()) {
+          <p class="text-danger" role="alert">{{ erroFotos() }}</p>
+        }
+        @if (fotos().length) {
+          <ul class="grade-fotos list-unstyled mt-3">
+            @for (foto of fotos(); track foto.url) {
+              <li class="item-foto">
+                <img class="foto-secundaria" [src]="foto.url" [alt]="'Prévia da foto ' + ($index + 1)" />
+                <label class="d-flex align-items-center gap-2 mt-2">
+                  <input type="radio" name="foto-principal" [checked]="fotoPrincipal() === foto"
+                         [attr.aria-label]="'Selecionar foto ' + ($index + 1) + ' como principal'"
+                         (change)="fotoPrincipal.set(foto)" />
+                  Principal
+                </label>
+                <button class="btn btn-sm btn-outline-danger mt-2" type="button" (click)="retirarFoto(foto)"
+                        [attr.aria-label]="'Retirar foto ' + ($index + 1)">Retirar</button>
+              </li>
+            }
+          </ul>
+        }
+      </fieldset>
+
       @if (falha()) {
         <p class="alert alert-danger" role="alert">{{ falha() }}</p>
       }

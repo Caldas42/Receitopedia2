@@ -2,7 +2,7 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { formatarTempo, ReceitaApi, ReceitaResumo } from '../receita-api';
+import { caminhoFoto, formatarTempo, ReceitaApi, ReceitaResumo } from '../receita-api';
 
 @Component({
   selector: 'app-receita-lista',
@@ -13,6 +13,7 @@ export class ReceitaLista implements OnInit {
   private readonly api = inject(ReceitaApi);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly minhas = inject(ActivatedRoute).snapshot.data['minhas'] === true;
+  protected readonly caminhoFoto = caminhoFoto;
   protected readonly formatarTempo = formatarTempo;
   protected readonly receitas = signal<ReceitaResumo[]>([]);
   protected readonly carregando = signal(true);
