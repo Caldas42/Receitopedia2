@@ -10,6 +10,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.ChatServico;
+import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.ConversasRepositorio;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Anexo;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Conversa;
@@ -31,20 +33,23 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.NovaFoto;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.ConflitoMensagem;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.ConteudoMensagem;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.ConversaIndisponivel;
+import dev.pedrocaldas.receitopedia.dominio.comunicacao.EstadoMensagem;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.RegrasConversa;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TextosReceitas;
+import dev.pedrocaldas.receitopedia.dominio.receitas.TipoFoto;
 import dev.pedrocaldas.receitopedia.infraestrutura.fotos.FotosEmDisco;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PersistenceContext;
 
 @Repository
 class ChatJdbc implements ConversasRepositorio {
     private static final String MENSAGENS = """
             select m.*, u.nome_usuario,
-                case when not m.processada then 'ENVIADA'
-                when exists (select 1 from chat_membro p
+                exists (select 1 from chat_membro p
                     where p.conversa_id = m.conversa_id and p.ativo and p.usuario_id <> m.autor_id
                       and not exists (select 1 from chat_recibo r
-                        where r.mensagem_id = m.id and r.usuario_id = p.usuario_id and r.lida_em is not null))
-                then 'ENTREGUE' else 'LIDA' end as status
+                        where r.mensagem_id = m.id and r.usuario_id = p.usuario_id and r.lida_em is not null)) as leitura_pendente
             from chat_mensagem m join usuario u on u.id = m.autor_id
             """;
 
@@ -52,6 +57,9 @@ class ChatJdbc implements ConversasRepositorio {
     private final NamedParameterJdbcTemplate consultas;
     private final RegistroEventos eventos;
     private final FotosEmDisco arquivos;
+
+    @PersistenceContext
+    private EntityManager entidades;
 
     ChatJdbc(JdbcTemplate jdbc, NamedParameterJdbcTemplate consultas, RegistroEventos eventos, FotosEmDisco arquivos) {
         this.jdbc = jdbc;
@@ -173,7 +181,7 @@ class ChatJdbc implements ConversasRepositorio {
                 select m.id, :ator, current_timestamp from chat_mensagem m
                 where m.conversa_id = :conversa and m.processada and not m.apagada
                     and m.autor_id <> :ator and m.id in (:ids)
-                    and not exists (select 1 from chat_recibo r where r.mensagem_id = m.id and r.usuario_id = :ator)
+                on conflict do nothing
                 """, parametros);
         int alteradas = consultas.update("""
                 update chat_recibo set lida_em = current_timestamp
@@ -201,6 +209,151 @@ class ChatJdbc implements ConversasRepositorio {
         }
         jdbc.queryForList("select id from chat_conversa where dm_primeiro = ? and dm_segundo = ?",
                 UUID.class, par.primeiro(), par.segundo()).forEach(id -> avisar(id, null));
+    }
+
+    @Override
+    @Transactional
+    public UUID criarGrupo(UUID ator, String nome, List<String> usuarios) {
+        var membros = new LinkedHashSet<UUID>();
+        membros.add(ator);
+        if (!usuarios.isEmpty()) {
+            var ids = consultas.queryForList("select id from usuario where nome_chave in (:nomes)",
+                    Map.of("nomes", usuarios), UUID.class);
+            if (ids.size() != usuarios.size()) {
+                throw new ConversaIndisponivel();
+            }
+            membros.addAll(ids);
+        }
+        RegrasConversa.conferirCapacidade(membros.size());
+        UUID id = UUID.randomUUID();
+        jdbc.update("insert into chat_conversa (id, tipo, nome) values (?, 'GRUPO', ?)", id, nome);
+        jdbc.batchUpdate("insert into chat_membro (conversa_id, usuario_id, admin) values (?, ?, ?)",
+                membros.stream().map(membro -> new Object[]{id, membro, membro.equals(ator)}).toList());
+        avisar(id, null);
+        return id;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DadosChat.Grupo grupo(UUID ator, UUID conversa) {
+        acessarGrupo(ator, conversa, false);
+        var nome = jdbc.queryForObject("select nome from chat_conversa where id = ?", String.class, conversa);
+        var membros = jdbc.query("""
+                select u.id, u.nome_usuario, p.admin from chat_membro p join usuario u on u.id = p.usuario_id
+                where p.conversa_id = ? and p.ativo order by u.nome_chave
+                """, (rs, posicao) -> new DadosChat.Membro(uuid(rs, "id"), rs.getString("nome_usuario"),
+                rs.getBoolean("admin")), conversa);
+        return new DadosChat.Grupo(conversa, nome, membros);
+    }
+
+    @Override
+    @Transactional
+    public void renomearGrupo(UUID ator, UUID conversa, String nome) {
+        acessarGrupo(ator, conversa, true);
+        RegrasConversa.exigirAdmin(admin(ator, conversa));
+        jdbc.update("update chat_conversa set nome = ? where id = ?", nome, conversa);
+        avisar(conversa, null);
+    }
+
+    @Override
+    @Transactional
+    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, String nome, UUID alvo) {
+        acessarGrupo(ator, conversa, true);
+        if (acao != DadosChat.AcaoGrupo.SAIR) {
+            RegrasConversa.exigirAdmin(admin(ator, conversa));
+        }
+        if (acao == DadosChat.AcaoGrupo.ADICIONAR) {
+            adicionarAoGrupo(conversa, usuario(nome));
+            return;
+        }
+        UUID membro = acao == DadosChat.AcaoGrupo.SAIR ? ator : alvo;
+        boolean adminDoAlvo = admin(membro, conversa);
+        if (acao == DadosChat.AcaoGrupo.PROMOVER) {
+            jdbc.update("update chat_membro set admin = true where conversa_id = ? and usuario_id = ?", conversa, membro);
+        } else {
+            long administradores = jdbc.queryForObject(
+                    "select count(*) from chat_membro where conversa_id = ? and ativo and admin", Long.class, conversa);
+            RegrasConversa.manterAdmin(adminDoAlvo, administradores);
+            jdbc.update("update chat_membro set ativo = false, admin = false where conversa_id = ? and usuario_id = ?",
+                    conversa, membro);
+        }
+        avisar(conversa, membro);
+    }
+
+    private void adicionarAoGrupo(UUID conversa, UUID alvo) {
+        var vinculos = jdbc.queryForList("select ativo from chat_membro where conversa_id = ? and usuario_id = ?",
+                Boolean.class, conversa, alvo);
+        if (!vinculos.isEmpty() && vinculos.get(0)) {
+            return;
+        }
+        long atuais = jdbc.queryForObject(
+                "select count(*) from chat_membro where conversa_id = ? and ativo", Long.class, conversa);
+        RegrasConversa.conferirCapacidade(atuais + 1);
+        if (vinculos.isEmpty()) {
+            inserirMembro(conversa, alvo, false);
+        } else {
+            jdbc.update("update chat_membro set ativo = true where conversa_id = ? and usuario_id = ?", conversa, alvo);
+        }
+        avisar(conversa, alvo);
+    }
+
+    private boolean admin(UUID usuario, UUID conversa) {
+        var papeis = jdbc.queryForList("select admin from chat_membro where conversa_id = ? and usuario_id = ? and ativo",
+                Boolean.class, conversa, usuario);
+        if (papeis.isEmpty()) {
+            throw new ConversaIndisponivel();
+        }
+        return papeis.get(0);
+    }
+
+    private void acessarGrupo(UUID ator, UUID conversa, boolean travar) {
+        if (!"GRUPO".equals(acessar(ator, conversa, travar).tipo())) {
+            throw new ConversaIndisponivel();
+        }
+    }
+
+    @Override
+    @Transactional
+    public Mensagem alterar(UUID ator, UUID conversa, UUID id, long versao, String texto, boolean apagar) {
+        acessar(ator, conversa, false);
+        var mensagem = entidades.find(MensagemJpa.class, id);
+        if (mensagem == null || !mensagem.conversaId().equals(conversa)) {
+            throw new ConversaIndisponivel();
+        }
+        if (mensagem.autorId().equals(ator) && mensagem.versao() != versao) {
+            throw new ConflitoMensagem("A mensagem já foi alterada. Atualize a conversa.");
+        }
+        RegrasConversa.conferirAlteracao(ator, mensagem.autorId(), mensagem.enviadaEm().toInstant(),
+                java.time.Instant.now(), mensagem.apagada());
+        if (apagar) {
+            mensagem.apagar();
+        } else {
+            int anexos = jdbc.queryForObject("select count(*) from chat_anexo where mensagem_id = ?", Integer.class, id);
+            var dados = new ConteudoMensagem(texto, anexos);
+            mensagem.editar(dados.texto(), TextosReceitas.normalizar(dados.texto()));
+        }
+        try {
+            entidades.flush();
+        } catch (OptimisticLockException erro) {
+            throw new ConflitoMensagem("A mensagem já foi alterada. Atualize a conversa.");
+        }
+        avisar(conversa, null);
+        return anexar(mensagens(MENSAGENS + " where m.id = ?", id)).get(0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DadosChat.Arquivo anexo(UUID ator, UUID conversa, UUID id, boolean miniatura) {
+        acessar(ator, conversa, false);
+        var tipos = jdbc.queryForList("""
+                select a.tipo from chat_anexo a join chat_mensagem m on m.id = a.mensagem_id
+                where a.id = ? and m.conversa_id = ? and not m.apagada and (m.processada or m.autor_id = ?)
+                """, String.class, id, conversa, ator);
+        if (tipos.isEmpty()) {
+            throw new ConversaIndisponivel();
+        }
+        byte[] bytes = arquivos.ler(id).orElseThrow(ConversaIndisponivel::new);
+        return new DadosChat.Arquivo(TipoFoto.valueOf(tipos.get(0)).mime(), bytes);
     }
 
     @Override
@@ -282,7 +435,7 @@ class ChatJdbc implements ConversasRepositorio {
         return new Mensagem(uuid(rs, "id"), rs.getLong("sequencia"), uuid(rs, "autor_id"), rs.getString("nome_usuario"),
                 apagada ? "" : rs.getString("texto"), rs.getLong("versao"),
                 rs.getObject("enviada_em", OffsetDateTime.class).toInstant(), rs.getBoolean("editada"),
-                apagada, rs.getString("status"), List.of());
+                apagada, EstadoMensagem.calcular(rs.getBoolean("processada"), rs.getBoolean("leitura_pendente")).name(), List.of());
     }
 
     static UUID uuid(ResultSet rs, String coluna) throws SQLException {

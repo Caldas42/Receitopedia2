@@ -9,6 +9,7 @@ import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Conversa;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Mensagem;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.AlteracaoFotos;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.ConteudoMensagem;
+import dev.pedrocaldas.receitopedia.dominio.comunicacao.RegrasConversa;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TextosReceitas;
 
 public class ChatServico {
@@ -57,6 +58,35 @@ public class ChatServico {
             throw new IllegalArgumentException("Selecione outro usuário.");
         }
         repositorio.bloquear(ator, alvo, bloquear);
+    }
+
+    public UUID criarGrupo(UUID ator, String nome, List<String> membros) {
+        var usuarios = membros == null ? List.<String>of() : membros.stream().map(ChatServico::nomeUsuario).distinct().toList();
+        RegrasConversa.conferirCapacidade(usuarios.size());
+        return repositorio.criarGrupo(ator, RegrasConversa.nomeGrupo(nome), usuarios);
+    }
+
+    public DadosChat.Grupo grupo(UUID ator, UUID conversa) {
+        return repositorio.grupo(ator, conversa);
+    }
+
+    public void renomearGrupo(UUID ator, UUID conversa, String nome) {
+        repositorio.renomearGrupo(ator, conversa, RegrasConversa.nomeGrupo(nome));
+    }
+
+    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, String nome, UUID alvo) {
+        repositorio.membro(ator, conversa, acao, acao == DadosChat.AcaoGrupo.ADICIONAR ? nomeUsuario(nome) : null, alvo);
+    }
+
+    public Mensagem alterar(UUID ator, UUID conversa, UUID mensagem, Long versao, String texto, boolean apagar) {
+        if (versao == null || versao < 0) {
+            throw new IllegalArgumentException("Informe a versão atual da mensagem.");
+        }
+        return repositorio.alterar(ator, conversa, mensagem, versao, texto, apagar);
+    }
+
+    public DadosChat.Arquivo anexo(UUID ator, UUID conversa, UUID id, boolean miniatura) {
+        return repositorio.anexo(ator, conversa, id, miniatura);
     }
 
     public static String nomeUsuario(String nome) {

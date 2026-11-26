@@ -10,12 +10,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.ChatServico;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.ConversasRepositorio;
+import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Conversa;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat.Mensagem;
 import dev.pedrocaldas.receitopedia.apresentacao.usuarios.UsuarioPrincipal;
@@ -94,6 +96,66 @@ class ChatControlador {
         chat.bloquear(ator.id(), alvo, false);
     }
 
+    @PostMapping("/conversas/grupos")
+    @ResponseStatus(HttpStatus.CREATED)
+    Map<String, UUID> criarGrupo(@AuthenticationPrincipal UsuarioPrincipal ator, @RequestBody CriacaoGrupo dados) {
+        return Map.of("id", chat.criarGrupo(ator.id(), dados.nome(), dados.usuarios()));
+    }
+
+    @GetMapping("/conversas/{conversa}/grupo")
+    DadosChat.Grupo grupo(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa) {
+        return chat.grupo(ator.id(), conversa);
+    }
+
+    @PutMapping("/conversas/{conversa}/grupo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void renomear(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @RequestBody CriacaoGrupo dados) {
+        chat.renomearGrupo(ator.id(), conversa, dados.nome());
+    }
+
+    @PostMapping("/conversas/{conversa}/grupo/membros")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void adicionarMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @RequestBody AbrirDm dados) {
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.ADICIONAR, dados.usuario(), null);
+    }
+
+    @PutMapping("/conversas/{conversa}/grupo/membros/{alvo}/admin")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void promoverMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @PathVariable UUID alvo) {
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.PROMOVER, null, alvo);
+    }
+
+    @DeleteMapping("/conversas/{conversa}/grupo/membros/{alvo}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void removerMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @PathVariable UUID alvo) {
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.REMOVER, null, alvo);
+    }
+
+    @DeleteMapping("/conversas/{conversa}/grupo/eu")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void sair(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa) {
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.SAIR, null, null);
+    }
+
+    @PutMapping("/conversas/{conversa}/mensagens/{mensagem}")
+    Mensagem editar(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa,
+            @PathVariable UUID mensagem, @RequestBody Edicao dados) {
+        return chat.alterar(ator.id(), conversa, mensagem, dados.versao(), dados.texto(), false);
+    }
+
+    @DeleteMapping("/conversas/{conversa}/mensagens/{mensagem}")
+    Mensagem apagar(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa,
+            @PathVariable UUID mensagem, @RequestParam Long versao) {
+        return chat.alterar(ator.id(), conversa, mensagem, versao, null, true);
+    }
+
+    @GetMapping("/conversas/{conversa}/anexos/{anexo}")
+    ResponseEntity<byte[]> anexo(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa,
+            @PathVariable UUID anexo, @RequestParam(defaultValue = "false") boolean miniatura) {
+        var arquivo = chat.anexo(ator.id(), conversa, anexo, miniatura);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(arquivo.mime())).body(arquivo.bytes());
+    }
+
     @ExceptionHandler(ConversaIndisponivel.class)
     ProblemDetail indisponivel(ConversaIndisponivel erro) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, erro.getMessage());
@@ -114,6 +176,8 @@ class ChatControlador {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, erro.getMessage());
     }
 
+    record CriacaoGrupo(String nome, List<String> usuarios) {}
+    record Edicao(Long versao, String texto) {}
     record AbrirDm(String usuario) {}
     record Envio(UUID id, String texto) {}
     record Leituras(List<UUID> ids) {}
