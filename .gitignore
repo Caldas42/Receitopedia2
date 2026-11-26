@@ -15,3 +15,5 @@ src-gen
 **/src/main/angular/node
 **/src/main/resources/static
 /dados/
+
+__pycache__/

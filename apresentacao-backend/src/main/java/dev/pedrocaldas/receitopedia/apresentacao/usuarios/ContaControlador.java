@@ -3,6 +3,7 @@ package dev.pedrocaldas.receitopedia.apresentacao.usuarios;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,7 @@ import dev.pedrocaldas.receitopedia.dominio.usuarios.CadastroInvalido;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 
 @RestController
+@ConditionalOnWebApplication
 @RequestMapping("/backend")
 class ContaControlador {
     private final CadastrarUsuario cadastro;
