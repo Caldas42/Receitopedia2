@@ -1,9 +1,25 @@
 Domain Receitopedia {
+    Subdomain CadastroEAutenticacao
     Subdomain GerenciamentoDeReceitas
 }
 
 ContextMap {
+    contains Contas
     contains Receitas
+}
+
+BoundedContext Contas implements CadastroEAutenticacao {
+    Aggregate CadastroDeUsuarios {
+        Entity Usuario {
+            aggregateRoot
+
+            UUID id
+            String enderecoEmail
+            String nomeUsuario
+            String senhaHash
+            String papel
+        }
+    }
 }
 
 BoundedContext Receitas implements GerenciamentoDeReceitas {
@@ -14,13 +30,30 @@ BoundedContext Receitas implements GerenciamentoDeReceitas {
             UUID id
             long versao
             -DadosReceita dados
+            -AutorReceita dono nullable
+            -List<FotoReceita> fotos
         }
 
         ValueObject DadosReceita {
-            String titulo
-            String descricao
-            List<String> ingredientes
-            List<String> etapas
+            String titulo nullable
+            String descricao nullable
+            List<String> ingredientes notEmpty
+            List<String> etapas notEmpty
+            -TempoPreparo tempoPreparo nullable
+        }
+
+        ValueObject AutorReceita {
+            UUID id
+            String nomeUsuario
+        }
+
+        ValueObject TempoPreparo {
+            int minutosTotais
+        }
+
+        ValueObject FotoReceita {
+            UUID id
+            String tipo
         }
     }
 }

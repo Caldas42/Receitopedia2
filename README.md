@@ -3,22 +3,47 @@
 Rede social para compartilhar receitas. A implementação deste módulo permite adicionar,
 listar, visualizar, editar e remover receitas.
 
-## Gerenciamento de receitas
+## Contas e receitas
 
-Uma **receita** tem **título**, **descrição** opcional, **ingredientes** e **modo de preparo**.
-Cada linha dos ingredientes contém um item e pode incluir sua quantidade. No modo de preparo,
-cada linha é uma **etapa**, mantida na ordem em que foi cadastrada. A **versão da receita**
-identifica a edição aberta por quem usa o formulário.
+Em **Criar conta**, informe e-mail, nome de usuário e senha. Depois de entrar,
+o menu do usuário fica no canto superior direito. A tela **Receitas** é pública
+e mostra todas as receitas. **Minhas Receitas** filtra apenas as suas. As duas
+telas dão acesso ao cadastro de uma receita.
 
-O contexto de Receitas está modelado em `receitopedia.cml`. O módulo `dominio-receitas`
-valida os dados, `aplicacao` coordena os casos de uso, `infraestrutura` implementa
-persistência PostgreSQL via JPA e Flyway, e os módulos de apresentação expõem a API REST
-e a interface Angular.
+Uma **receita** exige **ingredientes** e **modo de preparo**, com um item ou uma
+etapa por linha. Título, descrição, tempo de preparo e fotos são opcionais.
+Ao informar somente horas ou somente minutos, a outra parte vale zero.
+A **foto principal** aparece na lista. A visualização também mostra as
+fotos secundárias e o nome do **autor**. Até cinco imagens JPEG, PNG ou WebP
+de até 5 MB cada podem ser enviadas.
 
-O banco aplica as alterações em transações e usa controle otimista de versão nas edições.
-A API devolve `409 Conflict` quando uma edição ou remoção usa uma versão desatualizada.
-O CRUD pode ser demonstrado localmente sem login. O controle de acesso depende da integração
-com a funcionalidade de autenticação do projeto.
+A edição e a exclusão exigem a sessão do autor. Receitas criadas antes da
+migração continuam na lista pública como **Receita sem autor associado**.
+O banco original não registrava o autor, portanto essas receitas ficam
+disponíveis apenas para leitura.
+
+## Arquitetura e consistência
+
+Os contextos de Contas e Receitas estão em `receitopedia.cml`. Os módulos de
+domínio centralizam as regras, `aplicacao` reúne os casos de uso e
+`infraestrutura` implementa persistência PostgreSQL via JPA e Flyway. A
+apresentação usa Spring Boot e Angular.
+
+O cadastro normaliza o e-mail e usa uma chave em minúsculas para comparar
+nomes de usuário. Restrições `UNIQUE` decidem cadastros concorrentes no
+PostgreSQL, e a API informa o campo que entrou em conflito. As senhas são
+armazenadas com BCrypt. Spring Security gerencia a sessão e a proteção CSRF.
+
+A API devolve `409 Conflict` quando uma edição ou remoção usa uma versão
+desatualizada. As fotos são identificadas por UUID e guardadas fora da pasta
+estática, em `./dados/fotos` por padrão. É possível definir
+`RECEITOPEDIA_FOTOS_DIR`. O Compose usa um volume dedicado. Arquivos retirados
+são enfileirados no banco na mesma transação da receita e apagados após o
+commit. Exclusões pendentes são reprocessadas na inicialização.
+
+A aplicação não cria pools de threads para cadastro ou upload. O teste de
+cadastros simultâneos envia duas requisições concorrentes para comprovar a
+garantia do banco.
 
 ## Build e execução
 
@@ -39,5 +64,5 @@ Abra <http://localhost:8080/receitas>. A API está em `/backend/receitas`,
 e o Swagger UI fica em <http://localhost:8080/swagger-ui/index.html>.
 
 Para compilar sem gerar a imagem Docker, use `mvn clean verify`. O build executa
-os cenários Cucumber de gerenciamento de receitas, incluindo duas edições concorrentes,
-em um banco de testes isolado.
+os cenários Cucumber de gerenciamento de receitas e os testes de cadastro,
+sessão e fotos em um banco de testes isolado.
