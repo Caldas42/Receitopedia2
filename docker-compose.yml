@@ -1,6 +1,10 @@
+include:
+  - docker-compose-servicos.yml
+
 services:
   postgres:
     image: postgres:18
+    restart: unless-stopped
     environment:
       POSTGRES_DB: receitopedia
       POSTGRES_USER: receitopedia
@@ -13,7 +17,7 @@ services:
     volumes:
       - receitopedia-postgres:/var/lib/postgresql
     ports:
-      - "5432:5432"
+      - "${RECEITOPEDIA_PORTA_POSTGRES:-5432}:5432"
 
 volumes:
   receitopedia-postgres:

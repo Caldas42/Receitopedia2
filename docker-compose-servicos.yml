@@ -1,0 +1,86 @@
+x-aplicacao: &aplicacao
+  image: receitopedia-apresentacao-frontend:0.0.1-SNAPSHOT
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_started
+  environment: &ambiente
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/receitopedia
+    SPRING_DATASOURCE_USERNAME: receitopedia
+    SPRING_DATASOURCE_PASSWORD: receitopedia
+    SPRING_RABBITMQ_HOST: rabbitmq
+    SPRING_RABBITMQ_USERNAME: ${RECEITOPEDIA_RABBIT_USUARIO:-receitopedia}
+    SPRING_RABBITMQ_PASSWORD: ${RECEITOPEDIA_RABBIT_SENHA:-receitopedia-dev}
+    RECEITOPEDIA_EVENTOS_ATIVO: "true"
+    RECEITOPEDIA_FOTOS_DIR: /var/lib/receitopedia/fotos
+  volumes:
+    - receitopedia-fotos:/var/lib/receitopedia/fotos
+
+x-web: &web
+  <<: *aplicacao
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/backend/receitas"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+    start_period: 15s
+
+services:
+  proxy:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "${RECEITOPEDIA_PORTA:-8080}:8080"
+    volumes:
+      - ./deploy/nginx-mensagens.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - receitopedia
+      - receitopedia-b
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/saude-proxy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  receitopedia:
+    <<: *web
+    environment:
+      <<: *ambiente
+      RECEITOPEDIA_ADMIN_EMAIL: ${RECEITOPEDIA_ADMIN_EMAIL:-}
+
+  receitopedia-b:
+    <<: *web
+
+  worker:
+    <<: *aplicacao
+    environment:
+      <<: *ambiente
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      RECEITOPEDIA_EVENTOS_WORKER: "true"
+      RECEITOPEDIA_THREADS_IMAGENS: ${RECEITOPEDIA_THREADS_IMAGENS:-2}
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/receitopedia-worker -mmin -1 -print 2>/dev/null)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RECEITOPEDIA_RABBIT_USUARIO:-receitopedia}
+      RABBITMQ_DEFAULT_PASS: ${RECEITOPEDIA_RABBIT_SENHA:-receitopedia-dev}
+    volumes:
+      - receitopedia-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  receitopedia-fotos:
+  receitopedia-rabbitmq:
