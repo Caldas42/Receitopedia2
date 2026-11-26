@@ -5,6 +5,12 @@
       Receitopédia
     </a>
     @if (sessao.usuario(); as usuario) {
+      <ul class="nav me-auto" aria-label="Receitas">
+        <li class="nav-item"><a class="nav-link" routerLink="/receitas" routerLinkActive="fw-semibold"
+          [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Todas</a></li>
+        <li class="nav-item"><a class="nav-link" routerLink="/minhas-receitas" routerLinkActive="fw-semibold"
+          ariaCurrentWhenActive="page">Minhas Receitas</a></li>
+      </ul>
       <details class="menu-conta">
         <summary>{{ usuario.nomeUsuario }}</summary>
         <div class="menu-conta-opcoes">

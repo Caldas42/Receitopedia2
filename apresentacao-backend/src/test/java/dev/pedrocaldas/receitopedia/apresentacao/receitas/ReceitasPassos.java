@@ -207,6 +207,23 @@ public class ReceitasPassos {
         consultarTitulo(titulo);
     }
 
+    @Então("Minhas Receitas lista somente as receitas do usuário logado")
+    public void listarSomenteAsMinhasReceitas() {
+        var outro = new ClienteReceitopedia(porta);
+        outro.criarContaESessao();
+        var criadaPorOutro = outro.escrever(RECEITAS, POST, formulario("Macarrão", INGREDIENTES));
+        assertThat(criadaPorOutro.getStatusCode()).isEqualTo(CREATED);
+        String outroId = criadaPorOutro.getBody().path("id").asText();
+        var minhas = http.ler(RECEITAS + "/minhas");
+        assertThat(minhas.getStatusCode()).isEqualTo(OK);
+        assertThat(minhas.getBody()).extracting(receita -> receita.path("id").asText()).containsExactly(id);
+
+        var anonimo = new ClienteReceitopedia(porta);
+        var publicas = anonimo.ler(RECEITAS);
+        assertThat(publicas.getBody()).extracting(receita -> receita.path("id").asText()).contains(id, outroId);
+        assertThat(anonimo.ler(RECEITAS + "/minhas").getStatusCode()).isEqualTo(UNAUTHORIZED);
+    }
+
     private JsonNode consultar() {
         var consulta = http.ler(caminhoReceita());
         assertThat(consulta.getStatusCode()).isEqualTo(OK);

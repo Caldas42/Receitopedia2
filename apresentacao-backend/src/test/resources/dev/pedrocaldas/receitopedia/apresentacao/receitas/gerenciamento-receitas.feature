@@ -26,3 +26,7 @@ Funcionalidade: Gerenciamento de receitas
     Então a receita é pública e identifica seu dono
     E um visitante precisa entrar para criar receitas
     E outro usuário e um administrador recebem 403 ao editar ou remover a receita
+
+  Cenário: Ver as próprias receitas em uma aba separada
+    Dado que cadastrei uma receita com o título "Receita pessoal"
+    Então Minhas Receitas lista somente as receitas do usuário logado

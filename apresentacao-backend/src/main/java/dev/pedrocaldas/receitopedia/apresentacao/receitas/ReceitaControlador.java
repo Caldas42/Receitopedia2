@@ -49,6 +49,11 @@ public class ReceitaControlador {
         return servico.listar();
     }
 
+    @GetMapping("/minhas")
+    public List<ReceitaResumo> minhas(@AuthenticationPrincipal UsuarioPrincipal usuario) {
+        return servico.listarDoDono(usuario.id());
+    }
+
     @GetMapping("/{id}")
     public Receita visualizar(@PathVariable UUID id) {
         return servico.visualizar(id);

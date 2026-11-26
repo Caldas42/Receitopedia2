@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ReceitaApi, ReceitaResumo } from '../receita-api';
 
@@ -12,6 +12,7 @@ import { ReceitaApi, ReceitaResumo } from '../receita-api';
 export class ReceitaLista implements OnInit {
   private readonly api = inject(ReceitaApi);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly minhas = inject(ActivatedRoute).snapshot.data['minhas'] === true;
   protected readonly receitas = signal<ReceitaResumo[]>([]);
   protected readonly carregando = signal(true);
   protected readonly falha = signal(false);
@@ -23,9 +24,8 @@ export class ReceitaLista implements OnInit {
   protected carregar() {
     this.carregando.set(true);
     this.falha.set(false);
-    this.api
-      .listar()
-      .pipe(
+    const consulta = this.minhas ? this.api.listarMinhas() : this.api.listar();
+    consulta.pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.carregando.set(false)),
       )

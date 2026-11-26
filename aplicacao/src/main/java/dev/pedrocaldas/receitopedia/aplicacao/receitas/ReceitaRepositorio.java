@@ -12,6 +12,8 @@ public interface ReceitaRepositorio {
 
     List<ReceitaResumo> listar();
 
+    List<ReceitaResumo> listarDoDono(UUID donoId);
+
     Optional<Receita> encontrar(UUID id);
 
     Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados);

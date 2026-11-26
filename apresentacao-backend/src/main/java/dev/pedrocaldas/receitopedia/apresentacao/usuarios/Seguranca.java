@@ -54,7 +54,7 @@ class Seguranca {
                 .exceptionHandling(excecoes -> excecoes.authenticationEntryPoint(
                         (requisicao, resposta, erro) -> resposta.setStatus(SC_UNAUTHORIZED)))
                 .authorizeHttpRequests(acesso -> acesso
-                        .requestMatchers("/backend/sessao").authenticated()
+                        .requestMatchers("/backend/sessao", "/backend/receitas/minhas").authenticated()
                         .requestMatchers(HttpMethod.POST, "/backend/receitas").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/backend/receitas/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/backend/receitas/*").authenticated()

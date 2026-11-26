@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class ReceitasPaginas {
-    @GetMapping({"/entrar", "/cadastro", "/receitas", "/receitas/{id}", "/receitas/{id}/editar"})
+    @GetMapping({"/entrar", "/cadastro", "/minhas-receitas", "/receitas", "/receitas/{id}", "/receitas/{id}/editar"})
     public String carregarAngular() {
         return "forward:/index.html";
     }

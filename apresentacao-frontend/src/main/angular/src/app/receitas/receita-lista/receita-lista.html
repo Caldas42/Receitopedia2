@@ -1,6 +1,6 @@
 <section aria-labelledby="titulo-pagina">
   <div class="cabecalho-pagina">
-    <h1 id="titulo-pagina">Receitas</h1>
+    <h1 id="titulo-pagina">{{ minhas ? "Minhas Receitas" : "Receitas" }}</h1>
     <a class="btn btn-primary" routerLink="/receitas/nova">
       <i class="bi bi-plus-lg" aria-hidden="true"></i> Nova receita
     </a>
@@ -17,7 +17,7 @@
     <div class="superficie estado-vazio">
       <i class="bi bi-journal-text" aria-hidden="true"></i>
       <h2>Nenhuma receita cadastrada</h2>
-      <p>Adicione a primeira receita ao Receitopédia.</p>
+      <p>{{ minhas ? "Adicione sua primeira receita." : "Adicione a primeira receita ao Receitopédia." }}</p>
     </div>
   } @else {
     <ul class="grade-receitas list-unstyled">

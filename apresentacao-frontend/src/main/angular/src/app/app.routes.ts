@@ -11,6 +11,13 @@ export const routes: Routes = [
   { path: 'entrar', component: ContaFormulario, title: 'Entrar | Receitopédia' },
   { path: 'cadastro', component: ContaFormulario, data: { cadastro: true }, title: 'Cadastro | Receitopédia' },
   { path: 'receitas', component: ReceitaLista, title: 'Receitas | Receitopédia' },
+  {
+    path: 'minhas-receitas',
+    component: ReceitaLista,
+    data: { minhas: true },
+    canActivate: [exigeSessao],
+    title: 'Minhas Receitas | Receitopédia',
+  },
   { path: 'receitas/nova', component: ReceitaFormulario, canActivate: [exigeSessao], title: 'Nova receita | Receitopédia' },
   { path: 'receitas/:id/editar', component: ReceitaFormulario, canActivate: [exigeSessao], title: 'Editar receita | Receitopédia' },
   { path: 'receitas/:id', component: ReceitaDetalhe, title: 'Receita | Receitopédia' },

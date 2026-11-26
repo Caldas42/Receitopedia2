@@ -22,6 +22,10 @@ public class ReceitaServicoAplicacao {
         return repositorio.listar();
     }
 
+    public List<ReceitaResumo> listarDoDono(UUID donoId) {
+        return repositorio.listarDoDono(donoId);
+    }
+
     public Receita visualizar(UUID id) {
         return repositorio.encontrar(id).orElseThrow(ReceitaNaoEncontrada::new);
     }

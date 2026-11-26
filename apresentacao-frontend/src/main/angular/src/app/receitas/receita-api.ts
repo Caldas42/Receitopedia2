@@ -30,6 +30,10 @@ export class ReceitaApi {
     return this.http.get<ReceitaResumo[]>(this.url);
   }
 
+  listarMinhas() {
+    return this.http.get<ReceitaResumo[]>(this.url + '/minhas');
+  }
+
   visualizar(id: string) {
     return this.http.get<Receita>(this.url + '/' + encodeURIComponent(id));
   }

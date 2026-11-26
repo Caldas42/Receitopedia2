@@ -1,6 +1,7 @@
 package dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.receitas;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,12 +39,27 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
 
     @Override
     public List<ReceitaResumo> listar() {
-        return entidades.createQuery("""
+        return listar(null);
+    }
+
+    @Override
+    public List<ReceitaResumo> listarDoDono(UUID donoId) {
+        return listar(Objects.requireNonNull(donoId));
+    }
+
+    private List<ReceitaResumo> listar(UUID donoId) {
+        String filtro = donoId == null ? "" : "where receita.dono.id = :donoId";
+        var consulta = entidades.createQuery("""
                 select new dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo(
                     receita.id, receita.titulo, receita.descricao)
                 from ReceitaJpa receita
+                %s
                 order by lower(receita.titulo), receita.id
-                """, ReceitaResumo.class).getResultList();
+                """.formatted(filtro), ReceitaResumo.class);
+        if (donoId != null) {
+            consulta.setParameter("donoId", donoId);
+        }
+        return consulta.getResultList();
     }
 
     @Override
