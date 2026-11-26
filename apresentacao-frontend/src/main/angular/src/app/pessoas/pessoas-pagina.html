@@ -1,0 +1,38 @@
+<h1 class="mb-4">Pessoas</h1>
+<label class="form-label" for="busca-pessoas">Buscar por nome de usuário</label>
+<input class="form-control mb-4" id="busca-pessoas" type="search" maxlength="100" [formControl]="busca" />
+@if (erro()) {
+  <p class="alert alert-danger" role="alert">{{ erro() }}</p>
+}
+<div class="listas-pessoas">
+  @for (aba of abas; track aba.tipo) {
+    @let lista = listas()[aba.tipo];
+    <section class="superficie" [attr.aria-labelledby]="'pessoas-' + aba.tipo">
+      <h2 [id]="'pessoas-' + aba.tipo">{{ aba.titulo }}</h2>
+      <div class="rolagem" tabindex="0" [attr.aria-label]="aba.titulo">
+        <ul class="list-group list-group-flush">
+          @for (pessoa of lista.pessoas; track pessoa.id) {
+            <li class="list-group-item d-flex align-items-center justify-content-between gap-2 px-0 bg-transparent">
+              <strong class="text-break">{{ pessoa.nomeUsuario }}</strong>
+              <button type="button" class="btn btn-sm" [class.btn-primary]="aba.tipo === 'TODOS'"
+                      [class.btn-outline-secondary]="aba.tipo === 'SEGUINDO'" [disabled]="!!alterando()"
+                      [attr.aria-label]="(aba.tipo === 'TODOS' ? 'Seguir ' : 'Deixar de seguir ') + pessoa.nomeUsuario"
+                      (click)="alterar(aba.tipo, pessoa)">
+                {{ aba.tipo === 'TODOS' ? 'Seguir' : 'Deixar de seguir' }}
+              </button>
+            </li>
+          }
+        </ul>
+        @if (lista.carregando) {
+          <p class="text-secondary mt-2" role="status">Carregando pessoas…</p>
+        } @else if (lista.falhou) {
+          <p role="alert">Não foi possível carregar a lista.</p>
+          <button type="button" class="btn btn-outline-secondary" (click)="carregar(aba.tipo)">Tentar novamente</button>
+        } @else if (lista.cursor === null && !lista.pessoas.length) {
+          <p class="text-secondary mt-2">Nenhum usuário encontrado.</p>
+        }
+        <div #sentinela class="sentinela" aria-hidden="true"></div>
+      </div>
+    </section>
+  }
+</div>

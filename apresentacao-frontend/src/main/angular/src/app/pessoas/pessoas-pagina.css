@@ -1,0 +1,14 @@
+.listas-pessoas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+}
+
+.rolagem {
+  max-height: 27rem;
+  overflow-y: auto;
+}
+
+.sentinela {
+  height: 1px;
+}
