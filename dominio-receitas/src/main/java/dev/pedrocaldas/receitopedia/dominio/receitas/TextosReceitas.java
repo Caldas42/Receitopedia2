@@ -17,6 +17,7 @@ public final class TextosReceitas {
 
     public static String normalizar(String texto) {
         String decomposto = Normalizer.normalize(texto.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
-        return ACENTOS.matcher(decomposto).replaceAll("");
+        String semAcentos = ACENTOS.matcher(decomposto).replaceAll("");
+        return Normalizer.normalize(semAcentos, Normalizer.Form.NFC);
     }
 }

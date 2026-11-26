@@ -71,6 +71,8 @@ class BuscaReceitasHttpTest {
         assertThat(ids(buscar(dono, RECEITAS, "PAE doc", 0))).containsExactlyInAnyOrder(tag, duasTags);
         assertThat(ids(buscar(dono, RECEITAS, "doc cur", 0))).containsExactly(duasTags);
         assertThat(ids(buscar(dono, RECEITAS, "pao sopa", 0))).isEmpty();
+        String coreano = criarReceita(dono, "한".repeat(120));
+        assertThat(ids(buscar(dono, RECEITAS, "한", 0))).containsExactly(coreano);
     }
 
     @Test

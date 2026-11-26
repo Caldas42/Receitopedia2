@@ -94,6 +94,7 @@ class CategoriasHttpTest {
             assertThat(resposta.getBody().path("detail").asText()).contains("2 e 30 caracteres");
         }
         assertThat(adicionar(admin, "x".repeat(30)).getStatusCode()).isEqualTo(CREATED);
+        assertThat(adicionar(admin, "한".repeat(30)).getStatusCode()).isEqualTo(CREATED);
     }
 
     @Test
