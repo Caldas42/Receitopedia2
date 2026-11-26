@@ -1,6 +1,7 @@
 package dev.pedrocaldas.receitopedia.aplicacao.receitas;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
@@ -21,12 +22,12 @@ public class ReceitaServicoAplicacao {
         return repositorio.adicionar(Receita.nova(dados, dono), fotos, selecionarCategorias(categorias));
     }
 
-    public List<ReceitaResumo> listar() {
-        return repositorio.listar();
+    public PaginaReceitas listar(BuscaReceitas busca) {
+        return repositorio.buscar(null, busca);
     }
 
-    public List<ReceitaResumo> listarDoDono(UUID donoId) {
-        return repositorio.listarDoDono(donoId);
+    public PaginaReceitas listarDoDono(UUID donoId, BuscaReceitas busca) {
+        return repositorio.buscar(Objects.requireNonNull(donoId), busca);
     }
 
     public Receita visualizar(UUID id) {

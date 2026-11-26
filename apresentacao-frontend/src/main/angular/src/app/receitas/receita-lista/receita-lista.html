@@ -6,18 +6,34 @@
     </a>
   </div>
 
+  <form class="mb-4" (submit)="$event.preventDefault(); pesquisar()" role="search">
+    <label class="form-label" for="busca-receitas">Buscar receitas por título ou categoria</label>
+    <div class="d-flex flex-wrap gap-2">
+      <input class="form-control flex-fill w-auto" id="busca-receitas" type="search" maxlength="100"
+             [formControl]="busca" />
+      <button class="btn btn-primary" type="submit">Buscar</button>
+      @if (termo()) {
+        <button class="btn btn-outline-secondary" type="button" (click)="limpar()">Limpar busca</button>
+      }
+    </div>
+  </form>
+
   @if (carregando()) {
     <p role="status">Carregando receitas…</p>
   } @else if (falha()) {
-    <div class="alert alert-danger" role="alert">Não foi possível carregar as receitas.</div>
+    <div class="alert alert-danger" role="alert">{{ falha() }}</div>
     <button class="btn btn-outline-secondary" type="button" (click)="carregar()">
       Tentar novamente
     </button>
   } @else if (receitas().length === 0) {
     <div class="superficie estado-vazio">
       <i class="bi bi-journal-text" aria-hidden="true"></i>
-      <h2>Nenhuma receita cadastrada</h2>
-      <p>{{ minhas ? "Adicione sua primeira receita." : "Adicione a primeira receita ao Receitopédia." }}</p>
+      @if (termo() || pagina() > 0) {
+        <h2>Nenhuma receita encontrada</h2>
+      } @else {
+        <h2>Nenhuma receita cadastrada</h2>
+        <p>{{ minhas ? "Adicione sua primeira receita." : "Adicione a primeira receita ao Receitopédia." }}</p>
+      }
     </div>
   } @else {
     <ul class="grade-receitas list-unstyled">
@@ -35,12 +51,27 @@
           @if (formatarTempo(receita.tempoMinutos); as tempo) {
             <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
           }
-          <app-tags-receita [categorias]="receita.categorias" />
+          <app-tags-receita [categorias]="receita.categorias" [destino]="destino" />
           @if (receita.descricao) {
             <p>{{ receita.descricao }}</p>
           }
         </li>
       }
     </ul>
+  }
+
+  @if (!carregando() && !falha() && (pagina() > 0 || temProxima())) {
+    <nav class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4"
+         aria-label="Páginas de receitas">
+      @if (pagina() > 0) {
+        <a class="btn btn-outline-secondary" [routerLink]="destino"
+           [queryParams]="{ busca: termo() || null, pagina: pagina() - 1 || null }">Anterior</a>
+      }
+      <span>Página {{ pagina() + 1 }}</span>
+      @if (temProxima()) {
+        <a class="btn btn-outline-secondary" [routerLink]="destino"
+           [queryParams]="{ busca: termo() || null, pagina: pagina() + 1 }">Próxima</a>
+      }
+    </nav>
   }
 </section>

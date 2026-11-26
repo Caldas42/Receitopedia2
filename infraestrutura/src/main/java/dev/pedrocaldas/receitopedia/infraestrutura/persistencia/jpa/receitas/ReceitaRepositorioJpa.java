@@ -3,7 +3,6 @@ package dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.receitas;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,6 +11,8 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.AlteracaoFotos;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.BuscaReceitas;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.PaginaReceitas;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaDesatualizada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaRepositorio;
@@ -61,17 +62,22 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
     }
 
     @Override
-    public List<ReceitaResumo> listar() {
-        return listar(null);
-    }
-
-    @Override
-    public List<ReceitaResumo> listarDoDono(UUID donoId) {
-        return listar(Objects.requireNonNull(donoId));
-    }
-
-    private List<ReceitaResumo> listar(UUID donoId) {
-        String filtro = donoId == null ? "" : "where receita.dono.id = :donoId";
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public PaginaReceitas buscar(UUID donoId, BuscaReceitas busca) {
+        var palavras = busca.palavras();
+        var condicoes = new ArrayList<String>();
+        if (donoId != null) {
+            condicoes.add("receita.dono.id = :donoId");
+        }
+        for (int i = 0; i < palavras.size(); i++) {
+            condicoes.add("""
+                    (receita.tituloChave like :termo%d escape '!' or exists (
+                        select 1 from ReceitaJpa vinculada join vinculada.categorias categoria
+                        where vinculada.id = receita.id and categoria.nomeChave like :termo%d escape '!'
+                    ))
+                    """.formatted(i, i));
+        }
+        String filtro = condicoes.isEmpty() ? "" : "where " + String.join(" and ", condicoes);
         var consulta = entidades.createQuery("""
                 select new dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo(
                     receita.id, receita.titulo, receita.descricao, receita.tempoMinutos, foto.id)
@@ -83,7 +89,19 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
         if (donoId != null) {
             consulta.setParameter("donoId", donoId);
         }
-        return incluirCategorias(consulta.getResultList());
+        for (int i = 0; i < palavras.size(); i++) {
+            consulta.setParameter("termo" + i, trechoLiteral(palavras.get(i)));
+        }
+
+        int tamanho = BuscaReceitas.POR_PAGINA;
+        var receitas = consulta.setFirstResult(busca.pagina() * tamanho).setMaxResults(tamanho + 1).getResultList();
+        boolean temProxima = receitas.size() > tamanho;
+        var pagina = temProxima ? receitas.subList(0, tamanho) : receitas;
+        return new PaginaReceitas(incluirCategorias(pagina), temProxima);
+    }
+
+    private static String trechoLiteral(String palavra) {
+        return "%" + palavra.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
     }
 
     private List<ReceitaResumo> incluirCategorias(List<ReceitaResumo> receitas) {

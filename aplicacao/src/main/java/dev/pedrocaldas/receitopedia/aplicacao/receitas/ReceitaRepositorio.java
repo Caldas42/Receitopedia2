@@ -1,6 +1,5 @@
 package dev.pedrocaldas.receitopedia.aplicacao.receitas;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,9 +10,7 @@ import dev.pedrocaldas.receitopedia.dominio.receitas.SelecaoCategorias;
 public interface ReceitaRepositorio {
     Receita adicionar(Receita receita, AlteracaoFotos fotos, SelecaoCategorias categorias);
 
-    List<ReceitaResumo> listar();
-
-    List<ReceitaResumo> listarDoDono(UUID donoId);
+    PaginaReceitas buscar(UUID donoId, BuscaReceitas busca);
 
     Optional<Receita> encontrar(UUID id);
 

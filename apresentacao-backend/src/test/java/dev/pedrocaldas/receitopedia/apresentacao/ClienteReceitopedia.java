@@ -33,8 +33,8 @@ public class ClienteReceitopedia {
                         .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build())));
     }
 
-    public ResponseEntity<JsonNode> ler(String caminho) {
-        return http.getForEntity(caminho, JsonNode.class);
+    public ResponseEntity<JsonNode> ler(String caminho, Object... variaveis) {
+        return http.getForEntity(caminho, JsonNode.class, variaveis);
     }
 
     public ResponseEntity<byte[]> baixar(String caminho) {

@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { map } from 'rxjs';
 import { Categoria } from './categorias/categoria-api';
 
 export interface DadosReceita {
@@ -54,12 +55,14 @@ export class ReceitaApi {
   private readonly http = inject(HttpClient);
   private readonly url = '/backend/receitas';
 
-  listar() {
-    return this.http.get<ReceitaResumo[]>(this.url);
-  }
-
-  listarMinhas() {
-    return this.http.get<ReceitaResumo[]>(this.url + '/minhas');
+  listar(minhas: boolean, busca: string, pagina: number) {
+    const caminho = minhas ? this.url + '/minhas' : this.url;
+    return this.http.get<ReceitaResumo[]>(caminho, { params: { busca, pagina }, observe: 'response' }).pipe(
+      map((resposta) => ({
+        receitas: resposta.body ?? [],
+        temProxima: resposta.headers.get('X-Tem-Proxima-Pagina') === 'true',
+      })),
+    );
   }
 
   visualizar(id: string) {

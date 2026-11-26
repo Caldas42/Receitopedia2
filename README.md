@@ -22,6 +22,21 @@ migração continuam na lista pública como **Receita sem autor associado**.
 O banco original não registrava o autor, portanto essas receitas ficam
 disponíveis apenas para leitura.
 
+## Categorias e busca
+
+Administradores mantêm o catálogo em **Categorias**. Qualquer usuário logado
+pode vincular até cinco categorias existentes às suas receitas. O banco aplica
+a unicidade pelo nome normalizado, inclusive quando duas criações concorrem.
+
+Em **Receitas** e **Minhas Receitas**, a busca encontra trechos no título e
+nas categorias sem diferenciar acentos ou maiúsculas. Cada palavra deve
+aparecer no título ou em pelo menos uma das categorias da receita. A busca
+aceita até 100 caracteres e as listas mostram 12 receitas por página.
+Você também pode iniciar uma busca clicando em uma tag.
+
+Na API, as listas aceitam `busca` e `pagina`, com a primeira página em
+`0`. O cabeçalho `X-Tem-Proxima-Pagina` indica se há mais resultados.
+
 ## Como configurar o primeiro administrador
 
 Crie uma conta pela tela **Criar conta**. Em seguida, defina

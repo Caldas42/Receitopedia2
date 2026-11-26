@@ -11,6 +11,7 @@ import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.FotoReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TempoPreparo;
+import dev.pedrocaldas.receitopedia.dominio.receitas.TextosReceitas;
 import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -42,6 +43,9 @@ public class ReceitaJpa {
 
     @Column(nullable = false, length = 120)
     private String titulo;
+
+    @Column(nullable = false, length = 240)
+    private String tituloChave;
 
     @Column(nullable = false, length = 1000)
     private String descricao;
@@ -82,6 +86,7 @@ public class ReceitaJpa {
 
     void preencher(DadosReceita dados) {
         titulo = dados.titulo();
+        tituloChave = TextosReceitas.normalizar(titulo);
         descricao = dados.descricao();
         tempoMinutos = dados.tempoPreparo() == null ? null : dados.tempoPreparo().minutosTotais();
         ingredientes.clear();

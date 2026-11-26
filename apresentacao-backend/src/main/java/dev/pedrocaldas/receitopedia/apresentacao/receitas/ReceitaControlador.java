@@ -26,7 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.AlteracaoFotos;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.BuscaReceitas;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.FotoNaoEncontrada;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.PaginaReceitas;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaDesatualizada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo;
@@ -67,13 +69,20 @@ public class ReceitaControlador {
     }
 
     @GetMapping
-    public List<ReceitaResumo> listar() {
-        return servico.listar();
+    public ResponseEntity<List<ReceitaResumo>> listar(@RequestParam(defaultValue = "") String busca,
+            @RequestParam(defaultValue = "0") int pagina) {
+        return respostaPaginada(servico.listar(new BuscaReceitas(busca, pagina)));
     }
 
     @GetMapping("/minhas")
-    public List<ReceitaResumo> minhas(@AuthenticationPrincipal UsuarioPrincipal usuario) {
-        return servico.listarDoDono(usuario.id());
+    public ResponseEntity<List<ReceitaResumo>> minhas(@AuthenticationPrincipal UsuarioPrincipal usuario,
+            @RequestParam(defaultValue = "") String busca, @RequestParam(defaultValue = "0") int pagina) {
+        return respostaPaginada(servico.listarDoDono(usuario.id(), new BuscaReceitas(busca, pagina)));
+    }
+
+    private ResponseEntity<List<ReceitaResumo>> respostaPaginada(PaginaReceitas pagina) {
+        return ResponseEntity.ok().header("X-Tem-Proxima-Pagina", Boolean.toString(pagina.temProxima()))
+                .body(pagina.receitas());
     }
 
     @GetMapping("/{id}")
