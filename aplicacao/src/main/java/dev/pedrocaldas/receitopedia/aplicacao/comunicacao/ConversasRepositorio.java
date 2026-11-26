@@ -25,7 +25,9 @@ public interface ConversasRepositorio {
 
     void renomearGrupo(UUID ator, UUID conversa, String nome);
 
-    void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, String nome, UUID alvo);
+    void adicionarMembros(UUID ator, UUID conversa, List<String> usuarios);
+
+    void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, UUID alvo);
 
     Mensagem alterar(UUID ator, UUID conversa, UUID mensagem, long versao, String texto, boolean apagar);
 

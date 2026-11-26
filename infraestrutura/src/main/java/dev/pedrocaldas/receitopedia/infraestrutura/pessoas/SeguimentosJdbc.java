@@ -1,9 +1,11 @@
 package dev.pedrocaldas.receitopedia.infraestrutura.pessoas;
 
+import java.sql.DatabaseMetaData;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -15,14 +17,21 @@ import dev.pedrocaldas.receitopedia.dominio.comunicacao.OperacaoProibida;
 public class SeguimentosJdbc {
     private final JdbcTemplate jdbc;
     private final NamedParameterJdbcTemplate consultas;
+    private final String bloqueio;
 
     SeguimentosJdbc(JdbcTemplate jdbc, NamedParameterJdbcTemplate consultas) {
         this.jdbc = jdbc;
         this.consultas = consultas;
+        boolean postgres = Boolean.TRUE.equals(jdbc.execute((ConnectionCallback<Boolean>) conexao -> {
+            DatabaseMetaData metadados = conexao.getMetaData();
+            return "PostgreSQL".equals(metadados.getDatabaseProductName());
+        }));
+        // No PostgreSQL, operações que só checam a FK de usuário não precisam esperar.
+        this.bloqueio = postgres ? " for no key update" : " for update";
     }
 
     public void travarUsuarios(Collection<UUID> usuarios) {
-        var travados = consultas.queryForList("select id from usuario where id in (:ids) order by id for update",
+        var travados = consultas.queryForList("select id from usuario where id in (:ids) order by id" + bloqueio,
                 Map.of("ids", usuarios), UUID.class);
         if (travados.size() != usuarios.size()) {
             throw new ConversaIndisponivel();

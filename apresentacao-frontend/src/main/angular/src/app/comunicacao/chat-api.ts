@@ -55,8 +55,8 @@ export class ChatApi {
     return firstValueFrom(this.http.put<void>(this.rota(conversa, '/grupo'), { nome }));
   }
 
-  adicionarMembro(conversa: string, usuario: string) {
-    return firstValueFrom(this.http.post<void>(this.rota(conversa, '/grupo/membros'), { usuario }));
+  adicionarMembros(conversa: string, usuarios: string[]) {
+    return firstValueFrom(this.http.post<void>(this.rota(conversa, '/grupo/membros'), { usuarios }));
   }
 
   promover(conversa: string, id: string) {

@@ -1,7 +1,7 @@
 <header class="cabecalho-pagina">
   <h1>Mensagens</h1>
   <div class="acoes">
-    <button class="btn btn-outline-secondary" type="button" (click)="novo = 'grupo'">Criar grupo</button>
+    <button class="btn btn-outline-secondary" type="button" (click)="criandoGrupo = true">Criar grupo</button>
   </div>
 </header>
 @if (!online()) {
@@ -10,15 +10,15 @@
 @if (erro()) {
   <p class="alert alert-danger" role="alert">{{ erro() }}</p>
 }
-@if (novo) {
-  <form class="superficie mb-3" (ngSubmit)="novaConversa()">
-      <label class="form-label" for="chat-grupo">Nome do grupo</label>
-      <input class="form-control mb-2" id="chat-grupo" name="nomeGrupo" [(ngModel)]="nomeGrupo" required />
-      <label class="form-label" for="chat-membros">Nomes de usuário separados por vírgulas</label>
-      <input class="form-control mb-2" id="chat-membros" name="nomesGrupo" [(ngModel)]="nomesGrupo" />
+@if (criandoGrupo) {
+  <form class="superficie mb-3" (ngSubmit)="criarGrupo()">
+    <label class="form-label" for="chat-grupo">Nome do grupo</label>
+    <input class="form-control mb-2" id="chat-grupo" name="nomeGrupo" [(ngModel)]="nomeGrupo" maxlength="80" required />
+    <app-seletor-amigos [(selecionados)]="selecionadosCriacao" [desativado]="ocupado()" />
     <div class="acoes">
-      <button type="submit" class="btn btn-primary" [disabled]="ocupado()">Abrir conversa</button>
-      <button type="button" class="btn btn-outline-secondary" (click)="novo = null">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="ocupado() || !nomeGrupo.trim()">Criar grupo</button>
+      <button type="button" class="btn btn-outline-secondary"
+              (click)="criandoGrupo = false; selecionadosCriacao = []; nomeGrupo = ''">Cancelar</button>
     </div>
   </form>
 }
@@ -41,17 +41,25 @@
     }
   </section>
 
-  <section class="superficie chat-painel" aria-label="Chat">
+  <section class="superficie chat-painel" aria-label="Chat" (keydown.escape)="fecharBusca($event)">
     @if (conversa(); as atual) {
       <header class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
         <h2>{{ atual.nome }}</h2>
-        @if (atual.tipo === 'GRUPO') {
-          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirGrupo(atual)">Gerir grupo</button>
-        } @else {
-          <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="ocupado()" (click)="bloquear(atual)">
-            {{ atual.bloqueioMeu ? 'Desbloquear usuário' : 'Bloquear usuário' }}
+        <div class="acoes">
+          <button #lupa type="button" class="btn btn-sm btn-outline-secondary lupa-chat"
+                  [attr.aria-expanded]="buscaAberta()" [attr.aria-controls]="buscaAberta() ? 'busca-chat' : null"
+                  [attr.aria-label]="buscaAberta() ? 'Fechar busca no histórico' : 'Buscar no histórico'"
+                  (click)="alternarBusca()">
+            <i class="bi bi-search" aria-hidden="true"></i>
           </button>
-        }
+          @if (atual.tipo === 'GRUPO') {
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirGrupo(atual)">Gerir grupo</button>
+          } @else {
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="ocupado()" (click)="bloquear(atual)">
+              {{ atual.bloqueioMeu ? 'Desbloquear usuário' : 'Bloquear usuário' }}
+            </button>
+          }
+        </div>
       </header>
 
       @if (alterarGrupo && grupo(); as detalhes) {
@@ -62,9 +70,12 @@
               <input class="form-control" aria-label="Novo nome do grupo" name="novoNome" [(ngModel)]="novoNome" maxlength="80" />
               <button class="btn btn-sm btn-outline-secondary" type="submit" [disabled]="ocupado()">Renomear</button>
             </form>
-            <form class="acoes mb-2" (ngSubmit)="adicionarMembro(atual.id)">
-              <input class="form-control" aria-label="Nome do novo membro" name="novoMembro" [(ngModel)]="novoMembro" />
-              <button class="btn btn-sm btn-outline-secondary" type="submit" [disabled]="ocupado()">Adicionar membro</button>
+            <form class="mb-2" (ngSubmit)="adicionarMembros(atual.id)">
+              <app-seletor-amigos [(selecionados)]="selecionadosGestao"
+                                  [membros]="idsDosMembros()" [limite]="256 - detalhes.membros.length"
+                                  [desativado]="ocupado()" />
+              <button class="btn btn-sm btn-outline-secondary" type="submit"
+                      [disabled]="ocupado() || !selecionadosGestao.length">Adicionar membros</button>
             </form>
           }
           <ul class="list-unstyled mb-2 membros">
@@ -86,13 +97,13 @@
         </div>
       }
 
-      <form class="d-flex gap-2" (ngSubmit)="pesquisar()">
-        <input class="form-control" type="search" name="busca" [(ngModel)]="busca" maxlength="100" aria-label="Buscar no histórico" />
-        <button type="submit" class="btn btn-outline-secondary">Buscar</button>
-        @if (termo) {
-          <button type="button" class="btn btn-outline-secondary" (click)="busca = ''; pesquisar()">Limpar</button>
-        }
-      </form>
+      @if (buscaAberta()) {
+        <form id="busca-chat" class="d-flex gap-2" role="search" (ngSubmit)="pesquisar()">
+          <input #campoBusca class="form-control" type="search" name="busca" [(ngModel)]="busca"
+                 maxlength="100" aria-label="Texto para buscar no histórico" />
+          <button type="submit" class="btn btn-outline-secondary">Buscar</button>
+        </form>
+      }
       <div class="historico" #historico (scroll)="marcarVisiveis()" aria-label="Histórico">
         @if (anteriores()) {
           <button type="button" class="btn btn-sm btn-outline-secondary mb-2" [disabled]="carregandoAnterior()" (click)="carregarAnteriores()">
@@ -146,8 +157,8 @@
       @if (atual.bloqueada) {
         <p class="mb-0 text-secondary" role="status">As mensagens diretas nesta conversa estão bloqueadas.</p>
       } @else {
-        <form (ngSubmit)="enviar()">
-          <textarea class="form-control mb-2" rows="2" name="texto" aria-label="Mensagem" maxlength="2000" [(ngModel)]="texto"></textarea>
+        <form class="caixa-mensagem" (ngSubmit)="enviar()">
+          <textarea class="form-control mb-2" rows="2" name="texto" aria-label="Mensagem" placeholder="Digite aqui" maxlength="2000" [(ngModel)]="texto"></textarea>
           <div class="acoes align-items-center">
             <label class="btn btn-outline-secondary" for="anexos-chat">Anexar imagens</label>
             <input class="visually-hidden" id="anexos-chat" type="file" accept="image/jpeg,image/png,image/webp"

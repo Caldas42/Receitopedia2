@@ -197,17 +197,11 @@ class ChatJdbc implements ConversasRepositorio {
     @Override
     @Transactional
     public UUID criarGrupo(UUID ator, String nome, List<String> usuarios) {
-        var membros = new LinkedHashSet<UUID>();
-        membros.add(ator);
-        if (!usuarios.isEmpty()) {
-            var ids = consultas.queryForList("select id from usuario where nome_chave in (:nomes)",
-                    Map.of("nomes", usuarios), UUID.class);
-            if (ids.size() != usuarios.size()) {
-                throw new ConversaIndisponivel();
-            }
-            membros.addAll(ids);
-        }
+        var convidados = idsDeUsuarios(usuarios);
+        var membros = juntoCom(ator, convidados);
         RegrasConversa.conferirCapacidade(membros.size());
+        seguimentos.travarUsuarios(membros);
+        seguimentos.exigirAmigos(ator, convidados);
         UUID id = UUID.randomUUID();
         jdbc.update("insert into chat_conversa (id, tipo, nome) values (?, 'GRUPO', ?)", id, nome);
         jdbc.batchUpdate("insert into chat_membro (conversa_id, usuario_id, admin) values (?, ?, ?)",
@@ -240,14 +234,10 @@ class ChatJdbc implements ConversasRepositorio {
 
     @Override
     @Transactional
-    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, String nome, UUID alvo) {
+    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, UUID alvo) {
         acessarGrupo(ator, conversa, true);
         if (acao != DadosChat.AcaoGrupo.SAIR) {
             RegrasConversa.exigirAdmin(admin(ator, conversa));
-        }
-        if (acao == DadosChat.AcaoGrupo.ADICIONAR) {
-            adicionarAoGrupo(conversa, usuario(nome));
-            return;
         }
         UUID membro = acao == DadosChat.AcaoGrupo.SAIR ? ator : alvo;
         boolean adminDoAlvo = admin(membro, conversa);
@@ -263,21 +253,45 @@ class ChatJdbc implements ConversasRepositorio {
         avisar(conversa, membro);
     }
 
-    private void adicionarAoGrupo(UUID conversa, UUID alvo) {
-        var vinculos = jdbc.queryForList("select ativo from chat_membro where conversa_id = ? and usuario_id = ?",
-                Boolean.class, conversa, alvo);
-        if (!vinculos.isEmpty() && vinculos.get(0)) {
-            return;
+    @Override
+    @Transactional
+    public void adicionarMembros(UUID ator, UUID conversa, List<String> usuarios) {
+        acessarGrupo(ator, conversa, false);
+        RegrasConversa.exigirAdmin(admin(ator, conversa));
+        var candidatos = idsDeUsuarios(usuarios);
+        seguimentos.travarUsuarios(juntoCom(ator, candidatos));
+        acessarGrupo(ator, conversa, true);
+        RegrasConversa.exigirAdmin(admin(ator, conversa));
+        var ativos = participantes(conversa);
+        var convidados = candidatos.stream().filter(id -> !ativos.contains(id)).toList();
+        RegrasConversa.conferirCapacidade(ativos.size() + convidados.size());
+        seguimentos.exigirAmigos(ator, convidados);
+        if (!convidados.isEmpty()) {
+            var parametros = convidados.stream().map(id -> new Object[]{conversa, id}).toList();
+            jdbc.batchUpdate("""
+                    insert into chat_membro (conversa_id, usuario_id) values (?, ?) on conflict do nothing
+                    """, parametros);
+            jdbc.batchUpdate("update chat_membro set ativo = true where conversa_id = ? and usuario_id = ?", parametros);
+            avisar(conversa, null);
         }
-        long atuais = jdbc.queryForObject(
-                "select count(*) from chat_membro where conversa_id = ? and ativo", Long.class, conversa);
-        RegrasConversa.conferirCapacidade(atuais + 1);
-        if (vinculos.isEmpty()) {
-            inserirMembro(conversa, alvo, false);
-        } else {
-            jdbc.update("update chat_membro set ativo = true where conversa_id = ? and usuario_id = ?", conversa, alvo);
+    }
+
+    private List<UUID> idsDeUsuarios(List<String> nomes) {
+        if (nomes.isEmpty()) {
+            return List.of();
         }
-        avisar(conversa, alvo);
+        var ids = consultas.queryForList("select id from usuario where nome_chave in (:nomes)",
+                Map.of("nomes", nomes), UUID.class);
+        if (ids.size() != nomes.size()) {
+            throw new ConversaIndisponivel();
+        }
+        return ids;
+    }
+
+    private LinkedHashSet<UUID> juntoCom(UUID ator, List<UUID> convidados) {
+        var usuarios = new LinkedHashSet<>(convidados);
+        usuarios.add(ator);
+        return usuarios;
     }
 
     private boolean admin(UUID usuario, UUID conversa) {
@@ -365,18 +379,6 @@ class ChatJdbc implements ConversasRepositorio {
             throw new ConversaIndisponivel();
         }
         return resultados.get(0);
-    }
-
-    UUID usuario(String nomeChave) {
-        var usuarios = jdbc.queryForList("select id from usuario where nome_chave = ?", UUID.class, nomeChave);
-        if (usuarios.isEmpty()) {
-            throw new ConversaIndisponivel();
-        }
-        return usuarios.get(0);
-    }
-
-    void inserirMembro(UUID conversa, UUID usuario, boolean admin) {
-        jdbc.update("insert into chat_membro (conversa_id, usuario_id, admin) values (?, ?, ?)", conversa, usuario, admin);
     }
 
     void avisar(UUID conversa, UUID afetado) {

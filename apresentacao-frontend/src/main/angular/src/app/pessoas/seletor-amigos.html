@@ -1,0 +1,42 @@
+<label class="form-label d-block">
+  Buscar amigos
+  <input #entrada class="form-control mt-1" type="search" maxlength="100"
+         [value]="busca()" [disabled]="desativado() || selecionados().length >= limite()"
+         (input)="digitar(entrada.value)" (keydown.enter)="$event.preventDefault()" />
+</label>
+@if (busca().trim()) {
+  @if (carregando()) {
+    <p class="small text-secondary" role="status">Buscando amigos…</p>
+  } @else if (falha()) {
+    <p class="small text-danger" role="alert">Não foi possível buscar amigos.</p>
+    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="consultar(proximo() ?? '')">Tentar novamente</button>
+  } @else if (!disponiveis().length && !proximo()) {
+    <p class="small text-secondary" role="status">Nenhum amigo disponível para esta busca.</p>
+  }
+  <ul class="list-group mb-2">
+    @for (pessoa of disponiveis(); track pessoa.id) {
+      <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+        <span>{{ pessoa.nomeUsuario }}</span>
+        <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="desativado()"
+                [attr.aria-label]="'Adicionar ' + pessoa.nomeUsuario" (click)="escolher(pessoa)">Adicionar</button>
+      </li>
+    }
+  </ul>
+  @if (proximo(); as cursor) {
+    @if (!carregando() && !falha()) {
+      <button class="btn btn-sm btn-outline-secondary" type="button" (click)="consultar(cursor)">Ver mais amigos</button>
+    }
+  }
+}
+@if (selecionados().length) {
+  <ul class="list-inline mb-2" aria-label="Amigos selecionados">
+    @for (pessoa of selecionados(); track pessoa.id) {
+      <li class="list-inline-item mb-1">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill" type="button" [disabled]="desativado()"
+                [attr.aria-label]="'Retirar ' + pessoa.nomeUsuario" (click)="retirar(pessoa.id)">
+          {{ pessoa.nomeUsuario }} <span aria-hidden="true">×</span>
+        </button>
+      </li>
+    }
+  </ul>
+}

@@ -92,3 +92,24 @@
   max-height: 12rem;
   overflow: auto;
 }
+
+.lupa-chat {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+
+.caixa-mensagem {
+  padding: 0.75rem;
+  border: 1px solid #b48c75;
+  border-radius: 0.6rem;
+  background: #f6eadf;
+}
+
+.caixa-mensagem:focus-within {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 2px var(--acento);
+}
+
+.caixa-mensagem .btn-primary {
+  min-width: 5.5rem;
+}

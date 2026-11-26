@@ -6,6 +6,8 @@ import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { auditTime, Subject } from 'rxjs';
+import { SeletorAmigos } from '../pessoas/seletor-amigos';
+import { Pessoa } from '../pessoas/pessoas-api';
 import { SessaoApi } from '../contas/sessao-api';
 import { ChatApi, Conversa, Grupo, Mensagem } from './chat-api';
 
@@ -13,7 +15,7 @@ type Envio = { conversa: string; id: string; texto: string; arquivos: File[] };
 
 @Component({
   selector: 'app-chat-pagina',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, SeletorAmigos],
   templateUrl: './chat-pagina.html',
   styleUrl: './chat-pagina.css',
   host: { '(document:visibilitychange)': 'marcarVisiveis()' },
@@ -23,6 +25,8 @@ export class ChatPagina implements OnInit {
   private readonly injector = inject(Injector);
   private readonly destroy = inject(DestroyRef);
   private readonly detector = inject(ChangeDetectorRef);
+  private readonly campoBusca = viewChild<ElementRef<HTMLInputElement>>('campoBusca');
+  private readonly lupa = viewChild<ElementRef<HTMLButtonElement>>('lupa');
   private readonly painel = viewChild<ElementRef<HTMLElement>>('historico');
   private readonly avisos = new Subject<void>();
   private readonly leiturasEmAndamento = new Set<string>();
@@ -37,18 +41,20 @@ export class ChatPagina implements OnInit {
   protected readonly mensagens = signal<Mensagem[]>([]);
   protected readonly anteriores = signal(false);
   protected readonly grupo = signal<Grupo | null>(null);
+  protected readonly idsDosMembros = computed(() => this.grupo()?.membros.map(({ id }) => id) ?? []);
   protected readonly admin = computed(() => this.grupo()?.membros.some((m) => m.id === this.usuario()?.id && m.admin));
   protected readonly erro = signal('');
   protected readonly online = signal(false);
   protected readonly ocupado = signal(false);
   protected readonly carregandoAnterior = signal(false);
 
-  protected novo: 'grupo' | null = null;
+  protected criandoGrupo = false;
   protected nomeGrupo = '';
-  protected nomesGrupo = '';
+  protected selecionadosCriacao: Pessoa[] = [];
   protected alterarGrupo = false;
   protected novoNome = '';
-  protected novoMembro = '';
+  protected selecionadosGestao: Pessoa[] = [];
+  protected readonly buscaAberta = signal(false);
   protected busca = '';
   protected termo = '';
   protected texto = '';
@@ -81,20 +87,48 @@ export class ChatPagina implements OnInit {
     this.tentativa = undefined;
     this.alterarGrupo = false;
     this.editar(null);
+    this.buscaAberta.set(false);
     this.termo = this.busca = this.texto = '';
     this.arquivos = [];
     this.erro.set('');
     void this.carregarMensagens(true);
   }
 
-  protected novaConversa() {
+  protected criarGrupo() {
     void this.executar(async () => {
-      const resposta = await this.api.criarGrupo(this.nomeGrupo, this.nomesGrupo.split(',').map((nome) => nome.trim()).filter(Boolean));
-      this.novo = null;
-      this.nomeGrupo = this.nomesGrupo = '';
+      const resposta = await this.api.criarGrupo(this.nomeGrupo, this.nomesSelecionados(this.selecionadosCriacao));
+      this.criandoGrupo = false;
+      this.nomeGrupo = '';
+      this.selecionadosCriacao = [];
       this.selecionar(resposta.id);
       await this.sincronizar();
     });
+  }
+
+  protected alternarBusca() {
+    if (this.buscaAberta()) {
+      this.fecharBusca();
+      return;
+    }
+    this.buscaAberta.set(true);
+    afterNextRender(() => this.campoBusca()?.nativeElement.focus(), { injector: this.injector });
+  }
+
+  protected fecharBusca(evento?: Event) {
+    if (!this.buscaAberta()) {
+      return;
+    }
+    evento?.preventDefault();
+    this.buscaAberta.set(false);
+    this.busca = '';
+    if (this.termo) {
+      this.pesquisar();
+    }
+    this.lupa()?.nativeElement.focus();
+  }
+
+  private nomesSelecionados(selecao: Pessoa[]) {
+    return selecao.map(({ nomeUsuario }) => nomeUsuario);
   }
 
   protected pesquisar() {
@@ -186,7 +220,7 @@ export class ChatPagina implements OnInit {
   protected abrirGrupo(conversa: Conversa) {
     this.alterarGrupo = !this.alterarGrupo;
     this.novoNome = conversa.nome;
-    this.novoMembro = '';
+    this.selecionadosGestao = [];
     if (this.alterarGrupo) {
       this.gerir(async () => {});
     }
@@ -200,10 +234,10 @@ export class ChatPagina implements OnInit {
     });
   }
 
-  protected adicionarMembro(id: string) {
+  protected adicionarMembros(id: string) {
     this.gerir(async () => {
-      await this.api.adicionarMembro(id, this.novoMembro);
-      this.novoMembro = '';
+      await this.api.adicionarMembros(id, this.nomesSelecionados(this.selecionadosGestao));
+      this.selecionadosGestao = [];
     });
   }
 

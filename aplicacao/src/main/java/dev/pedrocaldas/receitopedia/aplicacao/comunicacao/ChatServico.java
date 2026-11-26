@@ -57,8 +57,7 @@ public class ChatServico {
     }
 
     public UUID criarGrupo(UUID ator, String nome, List<String> membros) {
-        var usuarios = membros == null ? List.<String>of() : membros.stream().map(ChatServico::nomeUsuario).distinct().toList();
-        RegrasConversa.conferirCapacidade(usuarios.size());
+        var usuarios = nomesDoGrupo(membros);
         return repositorio.criarGrupo(ator, RegrasConversa.nomeGrupo(nome), usuarios);
     }
 
@@ -70,8 +69,22 @@ public class ChatServico {
         repositorio.renomearGrupo(ator, conversa, RegrasConversa.nomeGrupo(nome));
     }
 
-    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, String nome, UUID alvo) {
-        repositorio.membro(ator, conversa, acao, acao == DadosChat.AcaoGrupo.ADICIONAR ? nomeUsuario(nome) : null, alvo);
+    public void adicionarMembros(UUID ator, UUID conversa, List<String> membros) {
+        var usuarios = nomesDoGrupo(membros);
+        if (usuarios.isEmpty()) {
+            throw new IllegalArgumentException("Selecione ao menos um amigo.");
+        }
+        repositorio.adicionarMembros(ator, conversa, usuarios);
+    }
+
+    public void membro(UUID ator, UUID conversa, DadosChat.AcaoGrupo acao, UUID alvo) {
+        repositorio.membro(ator, conversa, acao, alvo);
+    }
+
+    private List<String> nomesDoGrupo(List<String> membros) {
+        var usuarios = membros == null ? List.<String>of() : membros.stream().map(ChatServico::nomeUsuario).distinct().toList();
+        RegrasConversa.conferirCapacidade(usuarios.size());
+        return usuarios;
     }
 
     public Mensagem alterar(UUID ator, UUID conversa, UUID mensagem, Long versao, String texto, boolean apagar) {

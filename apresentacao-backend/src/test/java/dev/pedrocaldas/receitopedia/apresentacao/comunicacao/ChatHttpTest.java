@@ -72,6 +72,12 @@ class ChatHttpTest {
         jdbc.batchUpdate("insert into usuario (id,email,nome_usuario,nome_chave,senha_hash,papel) values (?,?,?,?,?,'USER')",
                 nomes.stream().map(nome -> new Object[]{UUID.randomUUID(), nome.toLowerCase(java.util.Locale.ROOT)
                     + "@example.com", nome, nome.toLowerCase(java.util.Locale.ROOT), "somente-teste"}).toList());
+        List<UUID> convidados = new java.util.ArrayList<>(jdbc.queryForList(
+                "select id from usuario where nome_chave like ?", UUID.class, prefixo.toLowerCase(java.util.Locale.ROOT) + "%"));
+        convidados.add(UUID.fromString(comum.id));
+        UUID adminId = UUID.fromString(admin.id);
+        jdbc.batchUpdate("insert into seguimento (seguidor_id, seguido_id) values (?, ?)", convidados.stream()
+                .flatMap(id -> java.util.stream.Stream.of(new Object[]{adminId, id}, new Object[]{id, adminId})).toList());
         var iniciais = new java.util.ArrayList<>(nomes.subList(0, 253));
         iniciais.add(comum.nome);
         String grupo = criarGrupo(admin, iniciais);
@@ -95,6 +101,8 @@ class ChatHttpTest {
         var autor = conta();
         var b = conta();
         var c = conta();
+        dm(autor, b);
+        dm(autor, c);
         String grupo = criarGrupo(autor, List.of(b.nome, c.nome));
         String raiz = CONVERSAS + "/" + grupo;
         String rota = raiz + "/mensagens";
@@ -203,6 +211,26 @@ class ChatHttpTest {
         assertThat(ator.cliente.ler(raiz + "TODOS&busca={busca}", "%").getBody().path("pessoas")).isEmpty();
         assertThat(ator.cliente.ler(raiz + "TODOS&busca={busca}", ator.nome).getBody().path("pessoas")).isEmpty();
         assertThat(ator.cliente.ler(raiz + "AMIGOS&busca={busca}", busca).getBody().path("pessoas")).isEmpty();
+    }
+
+    @Test
+    void grupoSoAceitaAmigosDoAdminERetemQuemJaEntrou() {
+        var admin = conta();
+        var amiga = conta();
+        var outra = conta();
+        var dados = Map.of("nome", "Cozinha", "usuarios", List.of(amiga.nome));
+        assertThat(admin.cliente.escrever(CONVERSAS + "/grupos", POST, dados).getStatusCode()).isEqualTo(FORBIDDEN);
+        dm(admin, amiga);
+        String grupo = criarGrupo(admin, List.of(amiga.nome));
+        String rota = CONVERSAS + "/" + grupo + "/grupo";
+        assertThat(admin.cliente.escrever(seguimento(amiga), DELETE, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(amiga.cliente.ler(rota).getBody().path("membros")).hasSize(2);
+        assertThat(admin.cliente.escrever(rota + "/membros", POST, Map.of("usuarios", List.of(outra.nome)))
+                .getStatusCode()).isEqualTo(FORBIDDEN);
+        dm(admin, outra);
+        assertThat(admin.cliente.escrever(rota + "/membros", POST, Map.of("usuarios", List.of(outra.nome)))
+                .getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(outra.cliente.ler(rota).getBody().path("membros")).hasSize(3);
     }
 
     private String seguimento(Conta alvo) {

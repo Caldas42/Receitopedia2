@@ -25,7 +25,7 @@ public final class DadosChat {
     public record Mensagem(UUID id, long sequencia, UUID autorId, String autor, String texto, long versao,
             Instant enviadaEm, boolean editada, boolean apagada, String status, List<Anexo> anexos) {}
 
-    public enum AcaoGrupo { ADICIONAR, REMOVER, PROMOVER, SAIR }
+    public enum AcaoGrupo { REMOVER, PROMOVER, SAIR }
 
     public record Grupo(UUID id, String nome, List<Membro> membros) {}
 

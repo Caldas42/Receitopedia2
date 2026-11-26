@@ -110,26 +110,26 @@ class ChatControlador {
 
     @PostMapping("/conversas/{conversa}/grupo/membros")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void adicionarMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @RequestBody AbrirDm dados) {
-        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.ADICIONAR, dados.usuario(), null);
+    void adicionarMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @RequestBody AdicaoMembros dados) {
+        chat.adicionarMembros(ator.id(), conversa, dados.nomes());
     }
 
     @PutMapping("/conversas/{conversa}/grupo/membros/{alvo}/admin")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void promoverMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @PathVariable UUID alvo) {
-        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.PROMOVER, null, alvo);
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.PROMOVER, alvo);
     }
 
     @DeleteMapping("/conversas/{conversa}/grupo/membros/{alvo}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void removerMembro(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa, @PathVariable UUID alvo) {
-        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.REMOVER, null, alvo);
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.REMOVER, alvo);
     }
 
     @DeleteMapping("/conversas/{conversa}/grupo/eu")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void sair(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa) {
-        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.SAIR, null, null);
+        chat.membro(ator.id(), conversa, DadosChat.AcaoGrupo.SAIR, null);
     }
 
     @PutMapping("/conversas/{conversa}/mensagens/{mensagem}")
@@ -173,7 +173,11 @@ class ChatControlador {
 
     record CriacaoGrupo(String nome, List<String> usuarios) {}
     record Edicao(Long versao, String texto) {}
-    record AbrirDm(String usuario) {}
+    record AdicaoMembros(List<String> usuarios, String usuario) {
+        List<String> nomes() {
+            return usuarios == null && usuario != null ? List.of(usuario) : usuarios;
+        }
+    }
     record Envio(UUID id, String texto) {}
     record Leituras(List<UUID> ids) {}
 }
