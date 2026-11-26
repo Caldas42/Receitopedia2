@@ -38,6 +38,7 @@ import dev.pedrocaldas.receitopedia.dominio.comunicacao.RegrasConversa;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TextosReceitas;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TipoFoto;
 import dev.pedrocaldas.receitopedia.infraestrutura.fotos.FotosEmDisco;
+import dev.pedrocaldas.receitopedia.infraestrutura.pessoas.SeguimentosJdbc;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.PersistenceContext;
@@ -58,41 +59,19 @@ class ChatJdbc implements ConversasRepositorio {
     private final RegistroEventos eventos;
     private final FotosEmDisco arquivos;
     private final MiniaturasChat miniaturas;
+    private final SeguimentosJdbc seguimentos;
 
     @PersistenceContext
     private EntityManager entidades;
 
     ChatJdbc(JdbcTemplate jdbc, NamedParameterJdbcTemplate consultas, RegistroEventos eventos, FotosEmDisco arquivos,
-            MiniaturasChat miniaturas) {
+            MiniaturasChat miniaturas, SeguimentosJdbc seguimentos) {
         this.jdbc = jdbc;
         this.consultas = consultas;
         this.eventos = eventos;
         this.arquivos = arquivos;
         this.miniaturas = miniaturas;
-    }
-
-    @Override
-    @Transactional
-    public UUID abrirDm(UUID ator, String nomeChave) {
-        UUID alvo = usuario(nomeChave);
-        if (ator.equals(alvo)) {
-            throw new IllegalArgumentException("Selecione outro usuário.");
-        }
-        var par = Par.de(ator, alvo);
-        travarUsuarios(par);
-        RegrasConversa.conferirBloqueio(bloqueado(par));
-        var ids = jdbc.queryForList("select id from chat_conversa where dm_primeiro = ? and dm_segundo = ?",
-                UUID.class, par.primeiro(), par.segundo());
-        if (!ids.isEmpty()) {
-            return ids.get(0);
-        }
-        UUID id = UUID.randomUUID();
-        jdbc.update("insert into chat_conversa (id, tipo, dm_primeiro, dm_segundo) values (?, 'DM', ?, ?)",
-                id, par.primeiro(), par.segundo());
-        inserirMembro(id, ator, false);
-        inserirMembro(id, alvo, false);
-        avisar(id, null);
-        return id;
+        this.seguimentos = seguimentos;
     }
 
     @Override
@@ -113,7 +92,7 @@ class ChatJdbc implements ConversasRepositorio {
                              and r.usuario_id = :ator and r.lida_em is not null)) as nao_lidas
                 from chat_membro p join chat_conversa c on c.id = p.conversa_id
                 left join usuario u on u.id = case when c.dm_primeiro = :ator then c.dm_segundo else c.dm_primeiro end
-                where p.usuario_id = :ator and p.ativo
+                where p.usuario_id = :ator and p.ativo and (c.tipo = 'GRUPO' or c.dm_ativa)
                 order by (select max(m.enviada_em) from chat_mensagem m where m.conversa_id = c.id
                     and (m.processada or m.autor_id = :ator)) desc nulls last, c.id
                 """, Map.of("ator", ator), (rs, n) -> new Conversa(uuid(rs, "id"), rs.getString("tipo"),
@@ -375,7 +354,7 @@ class ChatJdbc implements ConversasRepositorio {
         // Bloqueie primeiro a conversa e confira o vínculo novamente após obter o lock.
         var resultados = jdbc.query("""
                 select c.tipo, c.dm_primeiro, c.dm_segundo, c.ultima_seq
-                from chat_conversa c where c.id = ?
+                from chat_conversa c where c.id = ? and (c.tipo = 'GRUPO' or c.dm_ativa)
                   and exists (select 1 from chat_membro p where p.conversa_id = c.id and p.usuario_id = ? and p.ativo)
                 """ + (travar ? " for update" : ""), (rs, n) -> new Acesso(rs.getString("tipo"),
                 uuid(rs, "dm_primeiro") == null ? null : new Par(uuid(rs, "dm_primeiro"), uuid(rs, "dm_segundo")),
@@ -426,11 +405,7 @@ class ChatJdbc implements ConversasRepositorio {
     }
 
     private void travarUsuarios(Par par) {
-        int primeiro = jdbc.queryForList("select id from usuario where id = ? for update", UUID.class, par.primeiro()).size();
-        int segundo = jdbc.queryForList("select id from usuario where id = ? for update", UUID.class, par.segundo()).size();
-        if (primeiro + segundo != 2) {
-            throw new ConversaIndisponivel();
-        }
+        seguimentos.travarUsuarios(List.of(par.primeiro(), par.segundo()));
     }
 
     private boolean bloqueado(Par par) {

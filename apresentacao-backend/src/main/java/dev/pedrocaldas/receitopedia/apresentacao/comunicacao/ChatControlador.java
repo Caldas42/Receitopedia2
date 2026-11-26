@@ -44,11 +44,6 @@ class ChatControlador {
         return chat.listar(ator.id());
     }
 
-    @PostMapping("/conversas/dm")
-    Map<String, UUID> abrir(@AuthenticationPrincipal UsuarioPrincipal ator, @RequestBody AbrirDm dados) {
-        return Map.of("id", chat.abrirDm(ator.id(), dados.usuario()));
-    }
-
     @GetMapping("/conversas/{conversa}/mensagens")
     List<Mensagem> historico(@AuthenticationPrincipal UsuarioPrincipal ator, @PathVariable UUID conversa,
             @RequestParam(defaultValue = "") String busca, @RequestParam(defaultValue = "9223372036854775807") long antes) {

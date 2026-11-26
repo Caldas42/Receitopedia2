@@ -54,7 +54,9 @@ class Cliente:
         return self
 
     def dm(self, outro):
-        return self.chamar("POST", "/backend/chat/conversas/dm", {"usuario": outro.nome})["id"]
+        self.chamar("PUT", f"/backend/pessoas/{outro.id}/seguimento", esperado=204)
+        outro.chamar("PUT", f"/backend/pessoas/{self.id}/seguimento", esperado=204)
+        return next(c["id"] for c in self.chamar("GET", "/backend/chat/conversas") if c["outroId"] == outro.id)
 
     def enviar(self, conversa, texto, id_mensagem=None, esperado=202):
         return self.chamar("POST", historico(conversa), {"id": id_mensagem or str(uuid.uuid4()), "texto": texto},

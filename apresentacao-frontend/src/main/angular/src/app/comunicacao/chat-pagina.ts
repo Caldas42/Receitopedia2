@@ -43,8 +43,7 @@ export class ChatPagina implements OnInit {
   protected readonly ocupado = signal(false);
   protected readonly carregandoAnterior = signal(false);
 
-  protected novo: 'dm' | 'grupo' | null = null;
-  protected usuarioAlvo = '';
+  protected novo: 'grupo' | null = null;
   protected nomeGrupo = '';
   protected nomesGrupo = '';
   protected alterarGrupo = false;
@@ -90,11 +89,9 @@ export class ChatPagina implements OnInit {
 
   protected novaConversa() {
     void this.executar(async () => {
-      const resposta = this.novo === 'grupo'
-        ? await this.api.criarGrupo(this.nomeGrupo, this.nomesGrupo.split(',').map((nome) => nome.trim()).filter(Boolean))
-        : await this.api.abrir(this.usuarioAlvo);
+      const resposta = await this.api.criarGrupo(this.nomeGrupo, this.nomesGrupo.split(',').map((nome) => nome.trim()).filter(Boolean));
       this.novo = null;
-      this.usuarioAlvo = this.nomeGrupo = this.nomesGrupo = '';
+      this.nomeGrupo = this.nomesGrupo = '';
       this.selecionar(resposta.id);
       await this.sincronizar();
     });

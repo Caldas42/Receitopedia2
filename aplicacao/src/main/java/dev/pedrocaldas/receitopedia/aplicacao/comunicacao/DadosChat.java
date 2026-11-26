@@ -8,6 +8,14 @@ public final class DadosChat {
     public static final String ENVIADA = "mensagem.enviada";
     public static final String ALTERADA = "conversa.alterada";
 
+    public static final String DM_CRIADA = "dm.criada";
+    public static final String DM_DESATIVADA = "dm.desativada";
+    public static final String DM_REATIVADA = "dm.reativada";
+
+    public static boolean eventoDm(String tipo) {
+        return DM_CRIADA.equals(tipo) || DM_DESATIVADA.equals(tipo) || DM_REATIVADA.equals(tipo);
+    }
+
     private DadosChat() {
     }
 

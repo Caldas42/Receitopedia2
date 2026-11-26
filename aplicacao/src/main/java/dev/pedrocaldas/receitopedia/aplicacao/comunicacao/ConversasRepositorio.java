@@ -9,8 +9,6 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.NovaFoto;
 import dev.pedrocaldas.receitopedia.dominio.comunicacao.ConteudoMensagem;
 
 public interface ConversasRepositorio {
-    UUID abrirDm(UUID ator, String nomeChave);
-
     List<Conversa> listar(UUID ator);
 
     Mensagem enviar(UUID ator, UUID conversa, UUID id, ConteudoMensagem conteudo, List<NovaFoto> anexos);

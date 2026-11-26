@@ -8,7 +8,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat;
 import dev.pedrocaldas.receitopedia.aplicacao.eventos.Evento;
+import dev.pedrocaldas.receitopedia.aplicacao.pessoas.PessoasServico;
 import dev.pedrocaldas.receitopedia.aplicacao.eventos.ProcessadorEvento;
 
 @Component
@@ -24,7 +26,8 @@ class ProcessarEventoChat implements ProcessadorEvento {
 
     @Override
     public boolean atende(String tipo) {
-        return ENVIADA.equals(tipo) || ALTERADA.equals(tipo);
+        return ENVIADA.equals(tipo) || ALTERADA.equals(tipo) || DadosChat.eventoDm(tipo)
+                || PessoasServico.SEGUIMENTO_ALTERADO.equals(tipo);
     }
 
     @Override

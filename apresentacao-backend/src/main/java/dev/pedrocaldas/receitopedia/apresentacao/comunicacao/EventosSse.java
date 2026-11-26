@@ -16,6 +16,7 @@ import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.ConversasRepositorio;
 import dev.pedrocaldas.receitopedia.aplicacao.comunicacao.DadosChat;
 import dev.pedrocaldas.receitopedia.aplicacao.eventos.Evento;
 import dev.pedrocaldas.receitopedia.aplicacao.eventos.ObservadorEvento;
+import dev.pedrocaldas.receitopedia.aplicacao.pessoas.PessoasServico;
 import dev.pedrocaldas.receitopedia.apresentacao.usuarios.UsuarioPrincipal;
 
 @RestController
@@ -44,17 +45,25 @@ class EventosSse implements ObservadorEvento {
 
     @Override
     public void notificar(Evento evento) {
-        if (!evento.tipo().equals(DadosChat.ENVIADA) && !evento.tipo().equals(DadosChat.ALTERADA)) {
+        if (PessoasServico.SEGUIMENTO_ALTERADO.equals(evento.tipo())) {
+            notificarUsuario(evento.agregado(), "seguimento");
+            notificarUsuario(evento.referencia(), "seguimento");
+            return;
+        }
+        if (!evento.tipo().equals(DadosChat.ENVIADA) && !evento.tipo().equals(DadosChat.ALTERADA)
+                && !DadosChat.eventoDm(evento.tipo())) {
             return;
         }
         var destinatarios = new HashSet<>(conversas.participantes(evento.agregado()));
         if (evento.tipo().equals(DadosChat.ALTERADA) && evento.referencia() != null) {
             destinatarios.add(evento.referencia());
         }
-        for (UUID id : destinatarios) {
-            for (var emissor : conexoes.getOrDefault(id, Set.of())) {
-                enviar(id, emissor, "atualizacao");
-            }
+        destinatarios.forEach(id -> notificarUsuario(id, "atualizacao"));
+    }
+
+    private void notificarUsuario(UUID id, String tipo) {
+        for (var emissor : conexoes.getOrDefault(id, Set.of())) {
+            enviar(id, emissor, tipo);
         }
     }
 

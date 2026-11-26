@@ -20,10 +20,6 @@ public class ChatServico {
         this.repositorio = repositorio;
     }
 
-    public UUID abrirDm(UUID ator, String nome) {
-        return repositorio.abrirDm(ator, nomeUsuario(nome));
-    }
-
     public List<Conversa> listar(UUID ator) {
         return repositorio.listar(ator);
     }

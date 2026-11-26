@@ -132,14 +132,93 @@ class ChatHttpTest {
         assertThat(enviar(a, rota, UUID.randomUUID(), "A")).isEqualTo(ACCEPTED);
     }
 
+    @Test
+    void seguimentosSimultaneosCriamUmaDmEPreservamHistoricoAoDesfazerAmizade() throws Exception {
+        var a = conta();
+        var b = conta();
+        var c = conta();
+        assertThat(new ClienteReceitopedia(porta).escrever(seguimento(b), PUT, null).getStatusCode())
+                .isEqualTo(UNAUTHORIZED);
+        assertThat(a.cliente.escrever(seguimento(a), PUT, null).getStatusCode()).isEqualTo(BAD_REQUEST);
+
+        var resultados = simultaneos(() -> a.cliente.escrever(seguimento(b), PUT, null).getStatusCode(),
+                () -> b.cliente.escrever(seguimento(a), PUT, null).getStatusCode());
+        assertThat(resultados).containsExactly(NO_CONTENT, NO_CONTENT);
+        String conversa = a.cliente.ler(CONVERSAS).getBody().get(0).path("id").asText();
+        assertThat(b.cliente.ler(CONVERSAS).getBody()).singleElement()
+                .satisfies(dm -> assertThat(dm.path("id").asText()).isEqualTo(conversa));
+        UUID aId = UUID.fromString(a.id);
+        UUID bId = UUID.fromString(b.id);
+        assertThat(jdbc.queryForObject("""
+                select count(*) from chat_conversa where dm_primeiro in (?, ?) and dm_segundo in (?, ?)
+                """, Long.class, aId, bId, aId, bId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from evento_outbox where tipo='dm.criada' and agregado=?",
+                Long.class, UUID.fromString(conversa))).isEqualTo(1);
+
+        assertThat(a.cliente.escrever(seguimento(b), PUT, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(jdbc.queryForObject("select count(*) from seguimento where seguidor_id=? and seguido_id=?",
+                Long.class, aId, bId)).isEqualTo(1);
+        a.cliente.escrever(seguimento(c), PUT, null);
+        assertThat(c.cliente.ler(CONVERSAS).getBody()).isEmpty();
+
+        String historico = CONVERSAS + "/" + conversa + "/mensagens";
+        UUID mensagem = UUID.randomUUID();
+        assertThat(enviar(a, historico, mensagem, "Histórico preservado")).isEqualTo(ACCEPTED);
+        assertThat(a.cliente.escrever(seguimento(b), DELETE, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(a.cliente.escrever(seguimento(b), DELETE, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(a.cliente.ler(CONVERSAS).getBody()).isEmpty();
+        assertThat(b.cliente.ler(CONVERSAS).getBody()).isEmpty();
+        assertThat(b.cliente.ler(historico).getStatusCode()).isEqualTo(NOT_FOUND);
+        assertThat(enviar(b, historico, UUID.randomUUID(), "Bloqueada")).isEqualTo(NOT_FOUND);
+        assertThat(a.cliente.escrever(seguimento(b), PUT, null).getStatusCode()).isEqualTo(NO_CONTENT);
+        assertThat(a.cliente.ler(CONVERSAS).getBody().get(0).path("id").asText()).isEqualTo(conversa);
+        assertThat(a.cliente.ler(historico).getBody()).extracting(m -> m.path("id").asText())
+                .containsExactly(mensagem.toString());
+    }
+
+    @Test
+    void filtraListasDePessoasPorTrechoLiteralEPaginaPorCursor() {
+        var ator = conta();
+        var prefixo = "Busca" + UUID.randomUUID().toString().substring(0, 6);
+        var usuarios = IntStream.range(0, 28).mapToObj(i -> new Conta(null, prefixo + "_" + (100 + i),
+                UUID.randomUUID().toString())).toList();
+        jdbc.batchUpdate("insert into usuario (id,email,nome_usuario,nome_chave,senha_hash,papel) values (?,?,?,?,?,'USER')",
+                usuarios.stream().map(u -> new Object[]{UUID.fromString(u.id),
+                    u.nome.toLowerCase(java.util.Locale.ROOT) + "@example.com", u.nome,
+                    u.nome.toLowerCase(java.util.Locale.ROOT), "somente-teste"}).toList());
+        var primeira = usuarios.get(0);
+        var segunda = usuarios.get(1);
+        ator.cliente.escrever(seguimento(primeira), PUT, null);
+        String raiz = "/backend/pessoas?lista=";
+        String busca = "Búsca" + prefixo.substring(5) + "_";
+        var seguidas = ator.cliente.ler(raiz + "SEGUINDO&busca={busca}", busca).getBody();
+        assertThat(seguidas.path("pessoas")).extracting(pessoa -> pessoa.path("id").asText()).containsExactly(primeira.id);
+        var pagina = ator.cliente.ler(raiz + "TODOS&busca={busca}", busca).getBody();
+        assertThat(pagina.path("pessoas")).hasSize(25);
+        assertThat(pagina.path("pessoas").get(0).path("id").asText()).isEqualTo(segunda.id);
+        var resto = ator.cliente.ler(raiz + "TODOS&busca={busca}&cursor={cursor}", busca, pagina.path("proximo").asText()).getBody();
+        assertThat(resto.path("pessoas")).extracting(pessoa -> pessoa.path("id").asText())
+                .containsExactly(usuarios.get(26).id, usuarios.get(27).id);
+        assertThat(resto.path("proximo").isNull()).isTrue();
+        assertThat(ator.cliente.ler(raiz + "TODOS&busca={busca}", "%").getBody().path("pessoas")).isEmpty();
+        assertThat(ator.cliente.ler(raiz + "TODOS&busca={busca}", ator.nome).getBody().path("pessoas")).isEmpty();
+        assertThat(ator.cliente.ler(raiz + "AMIGOS&busca={busca}", busca).getBody().path("pessoas")).isEmpty();
+    }
+
+    private String seguimento(Conta alvo) {
+        return "/backend/pessoas/" + alvo.id + "/seguimento";
+    }
+
     private HttpStatusCode enviar(Conta conta, String rota, UUID id, String texto) {
         return conta.cliente.escrever(rota, POST, Map.of("id", id, "texto", texto)).getStatusCode();
     }
 
     private String dm(Conta a, Conta b) {
-        var resposta = a.cliente.escrever(CONVERSAS + "/dm", POST, Map.of("usuario", b.nome));
-        assertThat(resposta.getStatusCode()).isEqualTo(OK);
-        return resposta.getBody().path("id").asText();
+        assertThat(a.cliente.escrever("/backend/pessoas/" + b.id + "/seguimento", PUT, null).getStatusCode())
+                .isEqualTo(NO_CONTENT);
+        assertThat(b.cliente.escrever("/backend/pessoas/" + a.id + "/seguimento", PUT, null).getStatusCode())
+                .isEqualTo(NO_CONTENT);
+        return a.cliente.ler(CONVERSAS).getBody().get(0).path("id").asText();
     }
 
     private String criarGrupo(Conta ator, List<String> membros) {

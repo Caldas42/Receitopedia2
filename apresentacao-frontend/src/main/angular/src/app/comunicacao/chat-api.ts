@@ -43,10 +43,6 @@ export class ChatApi {
     return firstValueFrom(this.http.get<Conversa[]>(raiz + '/conversas'));
   }
 
-  abrir(usuario: string) {
-    return firstValueFrom(this.http.post<{ id: string }>(raiz + '/conversas/dm', { usuario }));
-  }
-
   criarGrupo(nome: string, usuarios: string[]) {
     return firstValueFrom(this.http.post<{ id: string }>(raiz + '/conversas/grupos', { nome, usuarios }));
   }
