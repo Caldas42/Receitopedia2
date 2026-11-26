@@ -1,1 +1,0 @@
-Chromium: cadastro, login, DM, leitura, busca, edição, exclusão, criação e gestão de grupo e miniatura entregues pela pilha Compose.

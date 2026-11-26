@@ -1,1 +1,0 @@
-DM: sessões compartilhadas, SSE remoto, entrega, leitura e UUID idempotente verificados.
