@@ -10,6 +10,8 @@
           [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Todas</a></li>
         <li class="nav-item"><a class="nav-link" routerLink="/minhas-receitas" routerLinkActive="fw-semibold"
           ariaCurrentWhenActive="page">Minhas Receitas</a></li>
+        <li class="nav-item"><a class="nav-link" routerLink="/mensagens" routerLinkActive="fw-semibold"
+          ariaCurrentWhenActive="page">Mensagens</a></li>
         @if (usuario.papel === 'ADMIN') {
           <li class="nav-item"><a class="nav-link" routerLink="/categorias" routerLinkActive="fw-semibold"
             ariaCurrentWhenActive="page">Categorias</a></li>

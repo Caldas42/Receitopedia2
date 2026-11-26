@@ -102,6 +102,7 @@ class ChatJdbc implements ConversasRepositorio {
                     exists (select 1 from chat_bloqueio b where
                         (b.autor_id = :ator and b.alvo_id = u.id) or
                         (b.autor_id = u.id and b.alvo_id = :ator)) as bloqueada,
+                    exists (select 1 from chat_bloqueio b where b.autor_id = :ator and b.alvo_id = u.id) as bloqueio_meu,
                     (select case when m.apagada then 'Mensagem apagada'
                         when m.texto = '' then 'Imagem' else m.texto end
                      from chat_mensagem m where m.conversa_id = c.id and (m.processada or m.autor_id = :ator)
@@ -116,7 +117,7 @@ class ChatJdbc implements ConversasRepositorio {
                 order by (select max(m.enviada_em) from chat_mensagem m where m.conversa_id = c.id
                     and (m.processada or m.autor_id = :ator)) desc nulls last, c.id
                 """, Map.of("ator", ator), (rs, n) -> new Conversa(uuid(rs, "id"), rs.getString("tipo"),
-                rs.getString("nome"), uuid(rs, "outro"), rs.getBoolean("bloqueada"), rs.getString("ultima"),
+                rs.getString("nome"), uuid(rs, "outro"), rs.getBoolean("bloqueada"), rs.getBoolean("bloqueio_meu"), rs.getString("ultima"),
                 rs.getLong("nao_lidas")));
     }
 

@@ -11,7 +11,7 @@ public final class DadosChat {
     private DadosChat() {
     }
 
-    public record Conversa(UUID id, String tipo, String nome, UUID outroId, boolean bloqueada,
+    public record Conversa(UUID id, String tipo, String nome, UUID outroId, boolean bloqueada, boolean bloqueioMeu,
             String ultimaMensagem, long naoLidas) {}
 
     public record Mensagem(UUID id, long sequencia, UUID autorId, String autor, String texto, long versao,

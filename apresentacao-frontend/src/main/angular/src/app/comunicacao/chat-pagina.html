@@ -1,0 +1,173 @@
+<header class="cabecalho-pagina">
+  <h1>Mensagens</h1>
+  <div class="acoes">
+    <button class="btn btn-primary" type="button" (click)="novo = 'dm'">Nova DM</button>
+    <button class="btn btn-outline-secondary" type="button" (click)="novo = 'grupo'">Criar grupo</button>
+  </div>
+</header>
+@if (!online()) {
+  <p class="small text-secondary" role="status">Conectando às atualizações…</p>
+}
+@if (erro()) {
+  <p class="alert alert-danger" role="alert">{{ erro() }}</p>
+}
+@if (novo) {
+  <form class="superficie mb-3" (ngSubmit)="novaConversa()">
+    @if (novo === 'dm') {
+      <label class="form-label" for="chat-destino">Nome de usuário</label>
+      <input class="form-control mb-2" id="chat-destino" name="usuarioAlvo" [(ngModel)]="usuarioAlvo" required />
+    } @else {
+      <label class="form-label" for="chat-grupo">Nome do grupo</label>
+      <input class="form-control mb-2" id="chat-grupo" name="nomeGrupo" [(ngModel)]="nomeGrupo" required />
+      <label class="form-label" for="chat-membros">Nomes de usuário separados por vírgulas</label>
+      <input class="form-control mb-2" id="chat-membros" name="nomesGrupo" [(ngModel)]="nomesGrupo" />
+    }
+    <div class="acoes">
+      <button type="submit" class="btn btn-primary" [disabled]="ocupado()">Abrir conversa</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="novo = null">Cancelar</button>
+    </div>
+  </form>
+}
+
+<div class="chat-grid">
+  <section class="superficie" aria-label="Conversas">
+    @if (!conversas().length) {
+      <p class="mb-0">Nenhuma conversa.</p>
+    }
+    @for (item of conversas(); track item.id) {
+      <button type="button" class="conversa-item" [attr.aria-pressed]="item.id === id()" (click)="selecionar(item.id)">
+        <strong>{{ item.nome }}</strong>
+        @if (item.naoLidas) {
+          <span class="badge rounded-pill text-bg-primary ms-2" [attr.aria-label]="item.naoLidas + ' mensagens não lidas'">{{ item.naoLidas }}</span>
+        }
+        @if (item.ultimaMensagem) {
+          <span class="ultima small text-secondary">{{ item.ultimaMensagem }}</span>
+        }
+      </button>
+    }
+  </section>
+
+  <section class="superficie chat-painel" aria-label="Chat">
+    @if (conversa(); as atual) {
+      <header class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+        <h2>{{ atual.nome }}</h2>
+        @if (atual.tipo === 'GRUPO') {
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirGrupo(atual)">Gerir grupo</button>
+        } @else {
+          <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="ocupado()" (click)="bloquear(atual)">
+            {{ atual.bloqueioMeu ? 'Desbloquear usuário' : 'Bloquear usuário' }}
+          </button>
+        }
+      </header>
+
+      @if (alterarGrupo && grupo(); as detalhes) {
+        <div class="border rounded p-2">
+          <h3 class="h6">{{ detalhes.nome }}</h3>
+          @if (admin()) {
+            <form class="acoes mb-2" (ngSubmit)="gerir(api.renomear.bind(api, atual.id, novoNome))">
+              <input class="form-control" aria-label="Novo nome do grupo" name="novoNome" [(ngModel)]="novoNome" maxlength="80" />
+              <button class="btn btn-sm btn-outline-secondary" type="submit" [disabled]="ocupado()">Renomear</button>
+            </form>
+            <form class="acoes mb-2" (ngSubmit)="adicionarMembro(atual.id)">
+              <input class="form-control" aria-label="Nome do novo membro" name="novoMembro" [(ngModel)]="novoMembro" />
+              <button class="btn btn-sm btn-outline-secondary" type="submit" [disabled]="ocupado()">Adicionar membro</button>
+            </form>
+          }
+          <ul class="list-unstyled mb-2 membros">
+            @for (membro of detalhes.membros; track membro.id) {
+              <li class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <span>{{ membro.nome }} {{ membro.admin ? '(admin)' : '' }}</span>
+                @if (admin() && membro.id !== usuario()?.id) {
+                  @if (!membro.admin) {
+                    <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="ocupado()"
+                            (click)="gerir(api.promover.bind(api, atual.id, membro.id))">Promover</button>
+                  }
+                  <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="ocupado()"
+                          (click)="removerMembro(atual.id, membro.id)">Remover</button>
+                }
+              </li>
+            }
+          </ul>
+          <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="ocupado()" (click)="sair(atual.id)">Sair do grupo</button>
+        </div>
+      }
+
+      <form class="d-flex gap-2" (ngSubmit)="pesquisar()">
+        <input class="form-control" type="search" name="busca" [(ngModel)]="busca" maxlength="100" aria-label="Buscar no histórico" />
+        <button type="submit" class="btn btn-outline-secondary">Buscar</button>
+        @if (termo) {
+          <button type="button" class="btn btn-outline-secondary" (click)="busca = ''; pesquisar()">Limpar</button>
+        }
+      </form>
+      <div class="historico" #historico (scroll)="marcarVisiveis()" aria-label="Histórico">
+        @if (anteriores()) {
+          <button type="button" class="btn btn-sm btn-outline-secondary mb-2" [disabled]="carregandoAnterior()" (click)="carregarAnteriores()">
+            Carregar mensagens anteriores
+          </button>
+        }
+        @if (!mensagens().length) {
+          <p class="text-secondary">{{ termo ? 'Nenhuma mensagem encontrada.' : 'Nenhuma mensagem.' }}</p>
+        }
+        @for (mensagem of mensagens(); track mensagem.id) {
+          <article class="mensagem" [class.propria]="mensagem.autorId === usuario()?.id"
+                   [attr.data-leitura]="mensagem.autorId !== usuario()?.id && !mensagem.apagada ? mensagem.id : null">
+            <div class="small text-secondary detalhe-mensagem">
+              <strong>{{ mensagem.autor }}</strong>
+              <span>{{ mensagem.enviadaEm | date:'dd/MM HH:mm' }}</span>
+            </div>
+            @if (mensagem.apagada) {
+              <p class="mb-0 fst-italic">Mensagem apagada</p>
+            } @else {
+              @if (editando?.id === mensagem.id) {
+                <form (ngSubmit)="confirmarEdicao(atual.id)" class="mb-2">
+                  <textarea class="form-control" aria-label="Editar texto" name="textoEdicao" maxlength="2000" [(ngModel)]="textoEdicao"></textarea>
+                  <div class="acoes mt-2">
+                    <button class="btn btn-sm btn-primary" [disabled]="ocupado()">Salvar edição</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="editar(null)">Cancelar</button>
+                  </div>
+                </form>
+              } @else if (mensagem.texto) {
+                <p class="texto-mensagem mb-0">{{ mensagem.texto }}</p>
+              }
+              @for (anexo of mensagem.anexos; track anexo.id) {
+                <a class="anexo" [href]="api.anexo(atual.id, anexo.id)" target="_blank" rel="noopener">
+                  <img [src]="api.anexo(atual.id, anexo.id, anexo.miniatura)" alt="Abrir imagem anexada" />
+                </a>
+              }
+              <div class="detalhe-mensagem small text-secondary">
+                @if (mensagem.editada) { <span>editada</span> }
+                @if (mensagem.autorId === usuario()?.id) {
+                  <span>{{ mensagem.status === 'LIDA' ? 'Lida' : mensagem.status === 'ENTREGUE' ? 'Entregue' : 'Enviada' }}</span>
+                }
+                @if (podeAlterar(mensagem) && !editando) {
+                  <button type="button" class="btn btn-link btn-sm p-0" (click)="editar(mensagem)">Editar</button>
+                  <button type="button" class="btn btn-link btn-sm p-0 text-danger" (click)="apagar(atual.id, mensagem)">Apagar</button>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+
+      @if (atual.bloqueada) {
+        <p class="mb-0 text-secondary" role="status">As mensagens diretas nesta conversa estão bloqueadas.</p>
+      } @else {
+        <form (ngSubmit)="enviar()">
+          <textarea class="form-control mb-2" rows="2" name="texto" aria-label="Mensagem" maxlength="2000" [(ngModel)]="texto"></textarea>
+          <div class="acoes align-items-center">
+            <label class="btn btn-outline-secondary" for="anexos-chat">Anexar imagens</label>
+            <input class="visually-hidden" id="anexos-chat" type="file" accept="image/jpeg,image/png,image/webp"
+                   multiple (change)="selecionarArquivos($event)" />
+            <button type="submit" class="btn btn-primary" [disabled]="ocupado() || (!texto.trim() && !arquivos.length)">Enviar</button>
+            @if (arquivos.length) {
+              <span>{{ arquivos.length }} imagem(ns)</span>
+              <button type="button" class="btn btn-link" (click)="arquivos = []">Retirar anexos</button>
+            }
+          </div>
+        </form>
+      }
+    } @else {
+      <p class="mb-0">Selecione uma conversa.</p>
+    }
+  </section>
+</div>

@@ -1,0 +1,94 @@
+.chat-grid,
+.chat-painel {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.chat-grid {
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .chat-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  }
+}
+
+.conversa-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  color: inherit;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.conversa-item[aria-pressed="true"],
+.conversa-item:hover {
+  background: #f1e7dc;
+}
+
+.ultima {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.historico {
+  height: min(48vh, 450px);
+  min-height: 210px;
+  overflow-y: auto;
+  background: #faf7f2;
+  border: 1px solid var(--borda);
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+}
+
+.mensagem {
+  width: fit-content;
+  max-width: min(90%, 42rem);
+  margin-bottom: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--papel);
+  border: 1px solid var(--borda);
+  border-radius: 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.mensagem.propria {
+  margin-left: auto;
+  background: #f1e7dc;
+}
+
+.texto-mensagem {
+  white-space: pre-wrap;
+}
+
+.detalhe-mensagem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+
+.anexo {
+  display: block;
+  margin-block: 0.25rem;
+}
+
+.anexo img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 12rem;
+  border-radius: 0.4rem;
+}
+
+.membros {
+  max-height: 12rem;
+  overflow: auto;
+}
