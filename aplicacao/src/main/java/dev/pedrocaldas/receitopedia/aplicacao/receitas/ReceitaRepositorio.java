@@ -8,7 +8,7 @@ import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
 
 public interface ReceitaRepositorio {
-    Receita adicionar(Receita receita);
+    Receita adicionar(Receita receita, AlteracaoFotos fotos);
 
     List<ReceitaResumo> listar();
 
@@ -16,7 +16,7 @@ public interface ReceitaRepositorio {
 
     Optional<Receita> encontrar(UUID id);
 
-    Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados);
+    Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos);
 
     void remover(UUID id, long versao, UUID usuarioId);
 }

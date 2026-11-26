@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.FotoReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.TempoPreparo;
 import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
@@ -54,6 +55,11 @@ public class ReceitaJpa {
     @Column(name = "texto", nullable = false, length = 1000)
     private List<String> etapas = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "receita_foto", joinColumns = @JoinColumn(name = "receita_id"))
+    @OrderColumn(name = "posicao")
+    private List<FotoJpa> fotos = new ArrayList<>();
+
     protected ReceitaJpa() {
     }
 
@@ -81,8 +87,19 @@ public class ReceitaJpa {
         return dono == null ? null : new AutorReceita(dono.id(), dono.nomeUsuario());
     }
 
+    List<FotoReceita> fotos() {
+        return fotos.stream().map(FotoJpa::paraDominio).toList();
+    }
+
+    void atualizarFotos(List<FotoReceita> novas) {
+        if (!fotos().equals(novas)) {
+            fotos.clear();
+            novas.stream().map(FotoJpa::new).forEach(fotos::add);
+        }
+    }
+
     Receita paraDominio() {
         var tempo = tempoMinutos == null ? null : new TempoPreparo(tempoMinutos);
-        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas, tempo), autor());
+        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas, tempo), autor(), fotos());
     }
 }

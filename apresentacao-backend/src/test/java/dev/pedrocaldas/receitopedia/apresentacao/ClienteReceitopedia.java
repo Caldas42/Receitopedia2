@@ -37,6 +37,10 @@ public class ClienteReceitopedia {
         return http.getForEntity(caminho, JsonNode.class);
     }
 
+    public ResponseEntity<byte[]> baixar(String caminho) {
+        return http.getForEntity(caminho, byte[].class);
+    }
+
     public ResponseEntity<JsonNode> escrever(String caminho, HttpMethod metodo, Object corpo) {
         var token = ler("/backend/csrf").getBody().path("token").asText();
         var cabecalhos = new HttpHeaders();

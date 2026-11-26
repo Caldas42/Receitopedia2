@@ -11,5 +11,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/receitopedia
       SPRING_DATASOURCE_USERNAME: receitopedia
       SPRING_DATASOURCE_PASSWORD: receitopedia
+      RECEITOPEDIA_FOTOS_DIR: /var/lib/receitopedia/fotos
+    volumes:
+      - receitopedia-fotos:/var/lib/receitopedia/fotos
     ports:
       - "8080:8080"
+
+volumes:
+  receitopedia-fotos:
