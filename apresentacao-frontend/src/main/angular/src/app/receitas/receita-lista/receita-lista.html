@@ -35,6 +35,7 @@
           @if (formatarTempo(receita.tempoMinutos); as tempo) {
             <p class="tempo-receita">Tempo de preparo: {{ tempo }}</p>
           }
+          <app-tags-receita [categorias]="receita.categorias" />
           @if (receita.descricao) {
             <p>{{ receita.descricao }}</p>
           }

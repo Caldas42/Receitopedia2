@@ -3,6 +3,7 @@ package dev.pedrocaldas.receitopedia.apresentacao.receitas;
 import static dev.pedrocaldas.receitopedia.apresentacao.ClienteReceitopedia.SENHA_TESTE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -11,7 +12,10 @@ import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -110,11 +114,85 @@ class CategoriasHttpTest {
             inicio.countDown();
             var a = uma.get(15, TimeUnit.SECONDS);
             var b = outra.get(15, TimeUnit.SECONDS);
-            assertThat(java.util.List.of(a.getStatusCode(), b.getStatusCode()))
+            assertThat(List.of(a.getStatusCode(), b.getStatusCode()))
                     .containsExactlyInAnyOrder(CREATED, CONFLICT);
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void associaCategoriasExistentesEPermiteRemoverOuPreservarNaEdicao() {
+        var admin = entrarComoAdmin();
+        var doce = idDe(adicionar(admin, "Doces para festas"));
+        var forno = idDe(adicionar(admin, "Assados de forno"));
+        var dono = new ClienteReceitopedia(porta);
+        dono.criarContaESessao();
+
+        var dados = dadosReceita(List.of(doce, forno));
+        var criada = dono.escrever("/backend/receitas", POST, dados);
+        assertThat(criada.getStatusCode()).isEqualTo(CREATED);
+        String id = idDe(criada);
+        String caminho = "/backend/receitas/" + id;
+        conferirTags(dono.ler(caminho).getBody(), forno, doce);
+        assertThat(dono.ler("/backend/receitas").getBody()).anySatisfy(resumo -> {
+            assertThat(resumo.path("id").asText()).isEqualTo(id);
+            conferirTags(resumo, forno, doce);
+        });
+
+        dados.put("versao", criada.getBody().path("versao").asLong());
+        dados.put("categorias", List.of(doce));
+        assertThat(admin.escrever(caminho, PUT, dados).getStatusCode()).isEqualTo(FORBIDDEN);
+        var reduzida = dono.escrever(caminho, PUT, dados);
+        assertThat(reduzida.getStatusCode()).isEqualTo(OK);
+        conferirTags(reduzida.getBody(), doce);
+
+        dados.put("versao", reduzida.getBody().path("versao").asLong());
+        dados.remove("categorias");
+        var preservada = dono.escrever(caminho, PUT, dados);
+        assertThat(preservada.getStatusCode()).isEqualTo(OK);
+        conferirTags(preservada.getBody(), doce);
+
+        dados.put("versao", preservada.getBody().path("versao").asLong());
+        dados.put("categorias", List.of());
+        var removidas = dono.escrever(caminho, PUT, dados);
+        assertThat(removidas.getStatusCode()).isEqualTo(OK);
+        conferirTags(dono.ler(caminho).getBody());
+    }
+
+    @Test
+    void limitaAsTagsERejeitaIdsRepetidosOuInexistentes() {
+        var admin = entrarComoAdmin();
+        var ids = java.util.stream.IntStream.range(1, 7)
+                .mapToObj(numero -> idDe(adicionar(admin, "Categoria de teste " + numero))).toList();
+        var dono = new ClienteReceitopedia(porta);
+        dono.criarContaESessao();
+
+        var cinco = dono.escrever("/backend/receitas", POST, dadosReceita(ids.subList(0, 5)));
+        assertThat(cinco.getStatusCode()).isEqualTo(CREATED);
+        assertThat(cinco.getBody().path("categorias")).hasSize(5);
+        rejeitarTags(dono, ids, "até 5 categorias");
+        rejeitarTags(dono, List.of(ids.get(0), ids.get(0)), "sem repetição");
+        rejeitarTags(dono, List.of(UUID.randomUUID().toString()), "não existem");
+    }
+
+    private void rejeitarTags(ClienteReceitopedia cliente, List<String> ids, String mensagem) {
+        var resposta = cliente.escrever("/backend/receitas", POST, dadosReceita(ids));
+        assertThat(resposta.getStatusCode()).isEqualTo(BAD_REQUEST);
+        assertThat(resposta.getBody().path("detail").asText()).contains(mensagem);
+    }
+
+    private static Map<String, Object> dadosReceita(List<String> ids) {
+        return new LinkedHashMap<>(Map.of("titulo", "Bolo para festas", "ingredientes", List.of("Farinha"),
+                "etapas", List.of("Misture os ingredientes."), "categorias", ids));
+    }
+
+    private static void conferirTags(JsonNode receita, String... ids) {
+        assertThat(receita.path("categorias")).extracting(tag -> tag.path("id").asText()).containsExactly(ids);
+    }
+
+    private static String idDe(ResponseEntity<JsonNode> resposta) {
+        return resposta.getBody().path("id").asText();
     }
 
     private ClienteReceitopedia entrarComoAdmin() {

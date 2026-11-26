@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { Categoria } from './categorias/categoria-api';
 
 export interface DadosReceita {
   titulo: string;
@@ -8,6 +9,7 @@ export interface DadosReceita {
   etapas: string[];
   horas: number | null;
   minutos: number | null;
+  categorias: string[];
 }
 
 export function formatarTempo(minutosTotais: number | null): string | null {
@@ -25,14 +27,16 @@ export interface ReceitaResumo {
   descricao: string;
   tempoMinutos: number | null;
   fotoPrincipalId: string | null;
+  categorias: Categoria[];
 }
 
 export interface Receita {
   id: string;
   versao: number;
-  dados: Omit<DadosReceita, 'horas' | 'minutos'> & { tempoPreparo: { minutosTotais: number } | null };
+  dados: Omit<DadosReceita, 'horas' | 'minutos' | 'categorias'> & { tempoPreparo: { minutosTotais: number } | null };
   dono: { id: string; nomeUsuario: string } | null;
   fotos: { id: string }[];
+  categorias: Categoria[];
 }
 
 export interface FotosParaSalvar {

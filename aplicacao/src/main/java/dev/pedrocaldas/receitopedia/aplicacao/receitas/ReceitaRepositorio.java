@@ -6,9 +6,10 @@ import java.util.UUID;
 
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.SelecaoCategorias;
 
 public interface ReceitaRepositorio {
-    Receita adicionar(Receita receita, AlteracaoFotos fotos);
+    Receita adicionar(Receita receita, AlteracaoFotos fotos, SelecaoCategorias categorias);
 
     List<ReceitaResumo> listar();
 
@@ -16,7 +17,7 @@ public interface ReceitaRepositorio {
 
     Optional<Receita> encontrar(UUID id);
 
-    Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos);
+    Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos, SelecaoCategorias categorias);
 
     void remover(UUID id, long versao, UUID usuarioId);
 }

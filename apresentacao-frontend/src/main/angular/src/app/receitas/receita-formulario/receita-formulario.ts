@@ -6,6 +6,8 @@ import { finalize } from 'rxjs';
 import { SessaoApi } from '../../contas/sessao-api';
 import { caminhoFoto, DadosReceita, FotosParaSalvar, mensagemDeErro, ReceitaApi } from '../receita-api';
 
+import { Categoria, CategoriaApi } from '../categorias/categoria-api';
+
 type FotoFormulario = { url: string; original: string } | { url: string; arquivo: File };
 
 @Component({
@@ -14,6 +16,7 @@ type FotoFormulario = { url: string; original: string } | { url: string; arquivo
   templateUrl: './receita-formulario.html',
 })
 export class ReceitaFormulario implements OnInit, OnDestroy {
+  private readonly catalogo = inject(CategoriaApi);
   private readonly sessao = inject(SessaoApi);
   private readonly api = inject(ReceitaApi);
   private readonly rota = inject(ActivatedRoute);
@@ -29,6 +32,10 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
   protected readonly fotos = signal<FotoFormulario[]>([]);
   protected readonly fotoPrincipal = signal<FotoFormulario | null>(null);
   protected readonly erroFotos = signal('');
+  protected readonly categorias = signal<Categoria[]>([]);
+  protected readonly selecionadas = signal<string[]>([]);
+  protected readonly carregandoCategorias = signal(true);
+  protected readonly falhaCategorias = signal(false);
   protected readonly conflito = signal(false);
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     titulo: ['', Validators.maxLength(120)],
@@ -40,6 +47,7 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    this.carregarCategorias();
     if (!this.id) {
       return;
     }
@@ -50,12 +58,13 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
         finalize(() => this.carregando.set(false)),
       )
       .subscribe({
-        next: ({ id, dados, versao, dono, fotos }) => {
+        next: ({ id, dados, versao, dono, fotos, categorias }) => {
           if (!dono || dono.id !== this.sessao.usuario()?.id) {
             this.falha.set('Somente o dono pode editar esta receita.');
             return;
           }
           this.versao = versao;
+          this.selecionadas.set(categorias.map(({ id }) => id));
           const existentes = fotos.map(({ id: fotoId }) => ({ original: fotoId, url: caminhoFoto(id, fotoId) }));
           this.fotos.set(existentes);
           this.fotoPrincipal.set(existentes[0] ?? null);
@@ -71,6 +80,22 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
         },
         error: (erro) => this.falha.set(mensagemDeErro(erro, 'Não foi possível carregar a receita.')),
       });
+  }
+
+  protected carregarCategorias() {
+    this.carregandoCategorias.set(true);
+    this.falhaCategorias.set(false);
+    this.catalogo.listar().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.carregandoCategorias.set(false)),
+    ).subscribe({
+      next: (categorias) => this.categorias.set(categorias),
+      error: () => this.falhaCategorias.set(true),
+    });
+  }
+
+  protected alternarCategoria(id: string) {
+    this.selecionadas.update((ids) => ids.includes(id) ? ids.filter((atual) => atual !== id) : [...ids, id]);
   }
 
   ngOnDestroy() {
@@ -128,6 +153,7 @@ export class ReceitaFormulario implements OnInit, OnDestroy {
       etapas: this.linhasDe(campos.etapas),
       horas: campos.horas,
       minutos: campos.minutos,
+      categorias: this.selecionadas(),
     };
 
     if (this.formulario.invalid || !dados.ingredientes.length || !dados.etapas.length) {

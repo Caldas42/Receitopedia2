@@ -35,6 +35,33 @@
         <div class="form-text" id="ajuda-etapas">Escreva uma etapa por linha, na ordem do preparo.</div>
       </div>
 
+      <fieldset class="mb-4" aria-describedby="limite-categorias">
+        <legend class="form-label fs-6">Categorias <span class="text-secondary">(opcional)</span></legend>
+        <p class="form-text" id="limite-categorias">Selecione até 5 categorias.</p>
+        @if (carregandoCategorias()) {
+          <p role="status">Carregando categorias…</p>
+        } @else if (falhaCategorias()) {
+          <p role="alert">Não foi possível carregar as categorias.</p>
+          <button class="btn btn-outline-secondary" type="button" (click)="carregarCategorias()">
+            Tentar novamente
+          </button>
+        } @else if (categorias().length) {
+          <div class="d-flex flex-wrap gap-3">
+            @for (categoria of categorias(); track categoria.id) {
+              <label class="d-inline-flex align-items-center gap-2">
+                <input type="checkbox" class="form-check-input mt-0"
+                       [checked]="selecionadas().includes(categoria.id)"
+                       [disabled]="selecionadas().length >= 5 && !selecionadas().includes(categoria.id)"
+                       (change)="alternarCategoria(categoria.id)" />
+                {{ categoria.nome }}
+              </label>
+            }
+          </div>
+        } @else {
+          <p class="mb-0">Nenhuma categoria cadastrada.</p>
+        }
+      </fieldset>
+
       <fieldset class="mb-4">
         <legend class="form-label fs-6">Tempo de preparo <span class="text-secondary">(opcional)</span></legend>
         <div class="row g-3">

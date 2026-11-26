@@ -6,6 +6,7 @@ import java.util.UUID;
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.SelecaoCategorias;
 
 public class ReceitaServicoAplicacao {
     private final ReceitaRepositorio repositorio;
@@ -16,8 +17,8 @@ public class ReceitaServicoAplicacao {
         this.armazenamento = armazenamento;
     }
 
-    public Receita adicionar(DadosReceita dados, AutorReceita dono, AlteracaoFotos fotos) {
-        return repositorio.adicionar(Receita.nova(dados, dono), fotos);
+    public Receita adicionar(DadosReceita dados, AutorReceita dono, AlteracaoFotos fotos, List<UUID> categorias) {
+        return repositorio.adicionar(Receita.nova(dados, dono), fotos, selecionarCategorias(categorias));
     }
 
     public List<ReceitaResumo> listar() {
@@ -32,8 +33,9 @@ public class ReceitaServicoAplicacao {
         return repositorio.encontrar(id).orElseThrow(ReceitaNaoEncontrada::new);
     }
 
-    public Receita editar(UUID id, Long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos) {
-        return repositorio.editar(id, validarVersao(versao), usuarioId, dados, fotos);
+    public Receita editar(UUID id, Long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos,
+            List<UUID> categorias) {
+        return repositorio.editar(id, validarVersao(versao), usuarioId, dados, fotos, selecionarCategorias(categorias));
     }
 
     public void remover(UUID id, Long versao, UUID usuarioId) {
@@ -50,6 +52,10 @@ public class ReceitaServicoAplicacao {
     }
 
     public record FotoDisponivel(String tipo, byte[] bytes) {
+    }
+
+    private static SelecaoCategorias selecionarCategorias(List<UUID> ids) {
+        return ids == null ? null : new SelecaoCategorias(ids);
     }
 
     private static long validarVersao(Long versao) {

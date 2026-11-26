@@ -5,9 +5,11 @@ import { finalize } from 'rxjs';
 import { SessaoApi } from '../../contas/sessao-api';
 import { caminhoFoto, formatarTempo, mensagemDeErro, Receita, ReceitaApi } from '../receita-api';
 
+import { TagsReceita } from '../categorias/tags-receita';
+
 @Component({
   selector: 'app-receita-detalhe',
-  imports: [RouterLink],
+  imports: [RouterLink, TagsReceita],
   templateUrl: './receita-detalhe.html',
   styleUrl: './receita-detalhe.css',
 })

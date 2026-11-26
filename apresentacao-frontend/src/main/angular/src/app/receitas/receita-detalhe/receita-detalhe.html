@@ -40,6 +40,7 @@
     } @else {
       <p class="text-secondary">Receita sem autor associado</p>
     }
+    <app-tags-receita [categorias]="receitaAtual.categorias" />
     @if (receitaAtual.dados.descricao) {
       <p class="descricao-receita">{{ receitaAtual.dados.descricao }}</p>
     }

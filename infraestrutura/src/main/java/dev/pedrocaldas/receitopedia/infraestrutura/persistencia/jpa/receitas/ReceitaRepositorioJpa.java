@@ -1,5 +1,7 @@
 package dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.receitas;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,8 +17,10 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaRepositorio;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.ReceitaResumo;
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.Categoria;
 import dev.pedrocaldas.receitopedia.dominio.receitas.DadosReceita;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Receita;
+import dev.pedrocaldas.receitopedia.dominio.receitas.SelecaoCategorias;
 import dev.pedrocaldas.receitopedia.infraestrutura.fotos.FotosEmDisco;
 import dev.pedrocaldas.receitopedia.infraestrutura.fotos.LimpezaFotos;
 import dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.usuarios.UsuarioJpa;
@@ -24,6 +28,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Tuple;
 
 @Repository
 @Transactional(readOnly = true)
@@ -41,11 +46,12 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
 
     @Override
     @Transactional
-    public Receita adicionar(Receita receita, AlteracaoFotos fotos) {
+    public Receita adicionar(Receita receita, AlteracaoFotos fotos, SelecaoCategorias categorias) {
         ReceitaJpa registro = new ReceitaJpa(receita, entidades.getReference(UsuarioJpa.class, receita.dono().id()));
         if (fotos != null) {
             registro.atualizarFotos(fotos.selecao().aplicar(List.of()));
         }
+        atribuirCategorias(registro, categorias);
         entidades.persist(registro);
         entidades.flush();
         if (fotos != null) {
@@ -77,7 +83,29 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
         if (donoId != null) {
             consulta.setParameter("donoId", donoId);
         }
-        return consulta.getResultList();
+        return incluirCategorias(consulta.getResultList());
+    }
+
+    private List<ReceitaResumo> incluirCategorias(List<ReceitaResumo> receitas) {
+        if (receitas.isEmpty()) {
+            return receitas;
+        }
+        var linhas = entidades.createQuery("""
+                select receita.id as receitaId, categoria as categoria
+                from ReceitaJpa receita join receita.categorias categoria
+                where receita.id in :receitas
+                order by categoria.nomeChave
+                """, Tuple.class).setParameter("receitas", receitas.stream().map(ReceitaResumo::id).toList())
+                .getResultList();
+        var categoriasPorReceita = new HashMap<UUID, List<Categoria>>();
+        for (var linha : linhas) {
+            var id = linha.get("receitaId", UUID.class);
+            var categoria = linha.get("categoria", CategoriaJpa.class).paraDominio();
+            categoriasPorReceita.computeIfAbsent(id, chave -> new ArrayList<>()).add(categoria);
+        }
+        return receitas.stream()
+                .map(receita -> receita.comCategorias(categoriasPorReceita.getOrDefault(receita.id(), List.of())))
+                .toList();
     }
 
     @Override
@@ -88,8 +116,10 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
 
     @Override
     @Transactional
-    public Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos) {
+    public Receita editar(UUID id, long versao, UUID usuarioId, DadosReceita dados, AlteracaoFotos fotos,
+            SelecaoCategorias categorias) {
         ReceitaJpa registro = carregarNaVersao(id, versao, usuarioId, LockModeType.NONE);
+        atribuirCategorias(registro, categorias);
         registro.preencher(dados);
         if (fotos == null) {
             confirmarAlteracao();
@@ -112,6 +142,17 @@ public class ReceitaRepositorioJpa implements ReceitaRepositorio {
         entidades.remove(registro);
         confirmarAlteracao();
         limpeza.removerAposCommit(fotos);
+    }
+
+    private void atribuirCategorias(ReceitaJpa registro, SelecaoCategorias selecao) {
+        if (selecao == null) {
+            return;
+        }
+        List<CategoriaJpa> categorias = selecao.ids().isEmpty() ? List.of()
+                : entidades.createQuery("from CategoriaJpa c where c.id in :ids order by c.nomeChave", CategoriaJpa.class)
+                        .setParameter("ids", selecao.ids()).getResultList();
+        selecao.conferirExistentes(categorias.size());
+        registro.atualizarCategorias(categorias);
     }
 
     private ReceitaJpa carregarNaVersao(UUID id, long versao, UUID usuarioId, LockModeType bloqueio) {

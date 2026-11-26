@@ -32,6 +32,7 @@ BoundedContext Receitas implements GerenciamentoDeReceitas {
             -DadosReceita dados
             -AutorReceita dono nullable
             -List<FotoReceita> fotos
+            -List<Categoria> categorias
         }
 
         ValueObject DadosReceita {
@@ -54,6 +55,15 @@ BoundedContext Receitas implements GerenciamentoDeReceitas {
         ValueObject FotoReceita {
             UUID id
             String tipo
+        }
+    }
+
+    Aggregate CatalogoDeCategorias {
+        Entity Categoria {
+            aggregateRoot
+
+            UUID id
+            String nome
         }
     }
 }

@@ -1,7 +1,9 @@
 package dev.pedrocaldas.receitopedia.infraestrutura.persistencia.jpa.receitas;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import dev.pedrocaldas.receitopedia.dominio.receitas.AutorReceita;
@@ -18,6 +20,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -60,6 +65,12 @@ public class ReceitaJpa {
     @OrderColumn(name = "posicao")
     private List<FotoJpa> fotos = new ArrayList<>();
 
+    @ManyToMany
+    @JoinTable(name = "receita_categoria", joinColumns = @JoinColumn(name = "receita_id"),
+            inverseJoinColumns = @JoinColumn(name = "categoria_id"))
+    @OrderBy("nomeChave")
+    private Set<CategoriaJpa> categorias = new LinkedHashSet<>();
+
     protected ReceitaJpa() {
     }
 
@@ -98,8 +109,16 @@ public class ReceitaJpa {
         }
     }
 
+    void atualizarCategorias(List<CategoriaJpa> novas) {
+        if (!categorias.equals(new LinkedHashSet<>(novas))) {
+            categorias.clear();
+            categorias.addAll(novas);
+        }
+    }
+
     Receita paraDominio() {
         var tempo = tempoMinutos == null ? null : new TempoPreparo(tempoMinutos);
-        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas, tempo), autor(), fotos());
+        return new Receita(id, versao, new DadosReceita(titulo, descricao, ingredientes, etapas, tempo), autor(), fotos(),
+                categorias.stream().map(CategoriaJpa::paraDominio).toList());
     }
 }

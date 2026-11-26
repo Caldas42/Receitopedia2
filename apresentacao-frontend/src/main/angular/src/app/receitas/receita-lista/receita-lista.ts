@@ -4,9 +4,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { caminhoFoto, formatarTempo, ReceitaApi, ReceitaResumo } from '../receita-api';
 
+import { TagsReceita } from '../categorias/tags-receita';
+
 @Component({
   selector: 'app-receita-lista',
-  imports: [RouterLink],
+  imports: [RouterLink, TagsReceita],
   templateUrl: './receita-lista.html',
 })
 export class ReceitaLista implements OnInit {

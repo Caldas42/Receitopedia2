@@ -62,7 +62,7 @@ public class ReceitaControlador {
 
     private ResponseEntity<Receita> adicionar(Formulario formulario, UsuarioPrincipal usuario, AlteracaoFotos fotos) {
         var dono = new AutorReceita(usuario.id(), usuario.nomeUsuario());
-        Receita receita = servico.adicionar(formulario.dados(), dono, fotos);
+        Receita receita = servico.adicionar(formulario.dados(), dono, fotos, formulario.categorias());
         return ResponseEntity.created(URI.create("/backend/receitas/" + receita.id())).body(receita);
     }
 
@@ -90,14 +90,15 @@ public class ReceitaControlador {
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Receita editar(@PathVariable UUID id, @RequestBody Formulario formulario,
             @AuthenticationPrincipal UsuarioPrincipal usuario) {
-        return servico.editar(id, formulario.versao(), usuario.id(), formulario.dados(), null);
+        return servico.editar(id, formulario.versao(), usuario.id(), formulario.dados(), null, formulario.categorias());
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Receita editarComFotos(@PathVariable UUID id, @RequestPart("receita") Formulario formulario,
             @RequestPart(value = "fotos", required = false) List<MultipartFile> arquivos,
             @AuthenticationPrincipal UsuarioPrincipal usuario) {
-        return servico.editar(id, formulario.versao(), usuario.id(), formulario.dados(), prepararFotos(formulario, arquivos));
+        return servico.editar(id, formulario.versao(), usuario.id(), formulario.dados(),
+                prepararFotos(formulario, arquivos), formulario.categorias());
     }
 
     @DeleteMapping("/{id}")
@@ -143,7 +144,7 @@ public class ReceitaControlador {
     }
 
     record Formulario(String titulo, String descricao, List<String> ingredientes, List<String> etapas,
-            Long versao, Integer horas, Integer minutos, List<UUID> fotosMantidas, Integer fotoPrincipal) {
+            Long versao, Integer horas, Integer minutos, List<UUID> fotosMantidas, Integer fotoPrincipal, List<UUID> categorias) {
         DadosReceita dados() {
             return new DadosReceita(titulo, descricao, ingredientes, etapas, TempoPreparo.informado(horas, minutos));
         }
