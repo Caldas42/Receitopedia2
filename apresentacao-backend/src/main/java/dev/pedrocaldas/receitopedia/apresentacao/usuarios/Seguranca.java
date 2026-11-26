@@ -15,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.CadastrarUsuario;
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.UsuarioRepositorio;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.DadosCadastro;
+import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
@@ -56,6 +57,7 @@ class Seguranca {
                 .authorizeHttpRequests(acesso -> acesso
                         .requestMatchers("/backend/sessao", "/backend/receitas/minhas").authenticated()
                         .requestMatchers(HttpMethod.POST, "/backend/receitas").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/backend/categorias").hasRole(Papel.ADMIN.name())
                         .requestMatchers(HttpMethod.PUT, "/backend/receitas/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/backend/receitas/*").authenticated()
                         .anyRequest().permitAll())

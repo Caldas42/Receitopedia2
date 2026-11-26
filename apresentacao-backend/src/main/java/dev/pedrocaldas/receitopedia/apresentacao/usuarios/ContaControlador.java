@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.CadastrarUsuario;
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.CadastroDuplicado;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.CadastroInvalido;
+import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 
 @RestController
 @RequestMapping("/backend")
@@ -36,7 +37,7 @@ class ContaControlador {
 
     @GetMapping("/sessao")
     Sessao sessao(@AuthenticationPrincipal UsuarioPrincipal pessoa) {
-        return new Sessao(pessoa.id(), pessoa.nomeUsuario());
+        return new Sessao(pessoa.id(), pessoa.nomeUsuario(), pessoa.papel());
     }
 
     @GetMapping("/csrf")
@@ -65,6 +66,6 @@ class ContaControlador {
         }
     }
 
-    record Sessao(UUID id, String nomeUsuario) {
+    record Sessao(UUID id, String nomeUsuario, Papel papel) {
     }
 }

@@ -7,4 +7,6 @@ public interface UsuarioRepositorio {
     void adicionar(Usuario usuario);
 
     Optional<Usuario> encontrarPorEmail(String email);
+
+    boolean promoverAdmin(String email);
 }

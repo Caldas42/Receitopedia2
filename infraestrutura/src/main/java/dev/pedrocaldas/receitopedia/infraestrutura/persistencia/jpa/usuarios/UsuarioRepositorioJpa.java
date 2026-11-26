@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.CadastroDuplicado;
 import dev.pedrocaldas.receitopedia.aplicacao.usuarios.UsuarioRepositorio;
+import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.Usuario;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -34,6 +35,15 @@ public class UsuarioRepositorioJpa implements UsuarioRepositorio {
             }
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public boolean promoverAdmin(String email) {
+        return entidades.createQuery("update UsuarioJpa u set u.papel = :papel where u.email = :email")
+                .setParameter("papel", Papel.ADMIN)
+                .setParameter("email", email)
+                .executeUpdate() != 0;
     }
 
     @Override

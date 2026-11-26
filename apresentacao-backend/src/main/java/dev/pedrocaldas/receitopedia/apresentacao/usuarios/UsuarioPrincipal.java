@@ -6,11 +6,13 @@ import java.util.UUID;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
+import dev.pedrocaldas.receitopedia.dominio.usuarios.Papel;
 import dev.pedrocaldas.receitopedia.dominio.usuarios.Usuario;
 
 public class UsuarioPrincipal extends User {
     private final UUID id;
     private final String nomeUsuario;
+    private final Papel papel;
 
     UsuarioPrincipal(Usuario usuario) {
         super(usuario.email(), usuario.senhaHash(),
@@ -18,10 +20,15 @@ public class UsuarioPrincipal extends User {
                         "ROLE_" + usuario.papel().name())));
         id = usuario.id();
         nomeUsuario = usuario.nomeUsuario();
+        papel = usuario.papel();
     }
 
     public UUID id() {
         return id;
+    }
+
+    public Papel papel() {
+        return papel;
     }
 
     public String nomeUsuario() {

@@ -3,13 +3,16 @@ import { ReceitaDetalhe } from './receitas/receita-detalhe/receita-detalhe';
 import { ReceitaFormulario } from './receitas/receita-formulario/receita-formulario';
 import { ReceitaLista } from './receitas/receita-lista/receita-lista';
 
-import { exigeSessao } from './contas/sessao-guard';
+import { exigeAdmin, exigeSessao } from './contas/sessao-guard';
 import { ContaFormulario } from './contas/conta-formulario';
+
+import { CategoriasAdmin } from './receitas/categorias/categorias-admin';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'receitas', pathMatch: 'full' },
   { path: 'entrar', component: ContaFormulario, title: 'Entrar | Receitopédia' },
   { path: 'cadastro', component: ContaFormulario, data: { cadastro: true }, title: 'Cadastro | Receitopédia' },
+  { path: 'categorias', component: CategoriasAdmin, canActivate: [exigeAdmin], title: 'Categorias | Receitopédia' },
   { path: 'receitas', component: ReceitaLista, title: 'Receitas | Receitopédia' },
   {
     path: 'minhas-receitas',

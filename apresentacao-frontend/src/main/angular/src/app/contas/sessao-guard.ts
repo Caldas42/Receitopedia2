@@ -11,3 +11,12 @@ export const exigeSessao: CanActivateFn = () => {
     catchError(() => of(login)),
   );
 };
+
+export const exigeAdmin: CanActivateFn = () => {
+  const sessao = inject(SessaoApi);
+  const inicio = inject(Router).createUrlTree(['/receitas']);
+  return sessao.consultar().pipe(
+    map((usuario) => usuario?.papel === 'ADMIN' ? true : inicio),
+    catchError(() => of(inicio)),
+  );
+};

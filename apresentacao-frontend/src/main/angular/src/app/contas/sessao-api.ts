@@ -5,6 +5,7 @@ import { catchError, of, switchMap, tap, throwError } from 'rxjs';
 export interface UsuarioSessao {
   id: string;
   nomeUsuario: string;
+  papel: 'USER' | 'ADMIN';
 }
 
 @Injectable({ providedIn: 'root' })

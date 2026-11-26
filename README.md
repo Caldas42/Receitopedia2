@@ -22,6 +22,22 @@ migração continuam na lista pública como **Receita sem autor associado**.
 O banco original não registrava o autor, portanto essas receitas ficam
 disponíveis apenas para leitura.
 
+## Como configurar o primeiro administrador
+
+Crie uma conta pela tela **Criar conta**. Em seguida, defina
+`RECEITOPEDIA_ADMIN_EMAIL` com o endereço dessa conta e reinicie a aplicação.
+No PowerShell, execute na raiz do projeto:
+
+```powershell
+$env:RECEITOPEDIA_ADMIN_EMAIL = Read-Host "E-mail da conta já cadastrada"
+docker compose -f docker-compose-receitopedia.yml up -d --force-recreate receitopedia
+```
+
+Ao iniciar, a aplicação promove a conta existente no banco. Saia e entre
+novamente para carregar o papel `ADMIN` e acessar **Categorias** no menu.
+A promoção é persistente, então você pode remover a variável depois.
+Novos cadastros recebem o papel `USER`.
+
 ## Arquitetura e consistência
 
 Os contextos de Contas e Receitas estão em `receitopedia.cml`. Os módulos de

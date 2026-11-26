@@ -1,0 +1,35 @@
+<section aria-labelledby="categorias-titulo">
+  <h1 id="categorias-titulo" class="mb-4">Categorias</h1>
+  <form class="superficie mb-4" (submit)="$event.preventDefault(); adicionar()">
+    <fieldset [disabled]="salvando()">
+      <label class="form-label" for="nome-categoria">Nome da categoria</label>
+      <div class="d-flex flex-wrap gap-2">
+        <input class="form-control flex-fill w-auto" id="nome-categoria" [formControl]="nome"
+               [attr.aria-describedby]="falhaCadastro() ? 'erro-nome-categoria' : null"
+               [attr.aria-invalid]="!!falhaCadastro()" />
+        <button type="submit" class="btn btn-primary">Adicionar categoria</button>
+      </div>
+    </fieldset>
+    @if (falhaCadastro()) {
+      <p id="erro-nome-categoria" class="text-danger mt-2 mb-0" role="alert">{{ falhaCadastro() }}</p>
+    }
+  </form>
+
+  <div class="superficie">
+    <h2>Categorias existentes</h2>
+    @if (carregando()) {
+      <p role="status" class="mb-0">Carregando categorias…</p>
+    } @else if (falhaLista()) {
+      <p role="alert">Não foi possível carregar as categorias.</p>
+      <button type="button" class="btn btn-outline-secondary" (click)="carregar()">Tentar novamente</button>
+    } @else if (categorias().length) {
+      <ul class="mb-0">
+        @for (categoria of categorias(); track categoria.id) {
+          <li>{{ categoria.nome }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="mb-0">Nenhuma categoria cadastrada.</p>
+    }
+  </div>
+</section>
