@@ -242,22 +242,60 @@ class CategoriasHttpTest {
         String primeira = idDe(adicionar(admin, "Z de ordem"));
         String segunda = idDe(adicionar(admin, "A de ordem"));
         var atual = new ArrayList<String>();
-        publico.ler(CATEGORIAS).getBody().forEach(tag -> atual.add(tag.path("id").asText()));
+        var catalogo = publico.ler(CATEGORIAS);
+        long versao = Long.parseLong(catalogo.getHeaders().getFirst("X-Versao-Categorias"));
+        catalogo.getBody().forEach(tag -> atual.add(tag.path("id").asText()));
         assertThat(atual).endsWith(primeira, segunda);
 
         var novaOrdem = new ArrayList<>(atual);
         novaOrdem.remove(segunda);
         novaOrdem.add(0, segunda);
         var ordem = CATEGORIAS + "/ordem";
-        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem)).getStatusCode()).isEqualTo(OK);
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem, "versao", versao)).getStatusCode()).isEqualTo(OK);
         assertThat(publico.ler(CATEGORIAS).getBody()).extracting(tag -> tag.path("id").asText())
                 .containsExactlyElementsOf(novaOrdem);
 
-        assertThat(admin.escrever(ordem, PUT, Map.of("ids", List.of(segunda, segunda))).getStatusCode())
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", List.of(segunda, segunda), "versao", versao)).getStatusCode())
                 .isEqualTo(BAD_REQUEST);
         assertThat(admin.escrever(CATEGORIAS + "/" + primeira, DELETE, null).getStatusCode())
                 .isEqualTo(NO_CONTENT);
-        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem)).getStatusCode()).isEqualTo(CONFLICT);
+        assertThat(admin.escrever(ordem, PUT, Map.of("ids", novaOrdem, "versao", versao)).getStatusCode()).isEqualTo(CONFLICT);
+    }
+
+    @Test
+    void duasOrdenacoesDaMesmaVersaoGeramUmConflito() throws Exception {
+        var primeiraAdmin = entrarComoAdmin();
+        var segundaAdmin = entrarComoAdmin();
+        assertThat(adicionar(primeiraAdmin, "Primeira para corrida").getStatusCode()).isEqualTo(CREATED);
+        assertThat(adicionar(segundaAdmin, "Segunda para corrida").getStatusCode()).isEqualTo(CREATED);
+        var catalogo = primeiraAdmin.ler(CATEGORIAS);
+        var versao = Long.parseLong(catalogo.getHeaders().getFirst("X-Versao-Categorias"));
+        var ids = new ArrayList<String>();
+        catalogo.getBody().forEach(tag -> ids.add(tag.path("id").asText()));
+        var inversa = new ArrayList<>(ids);
+        java.util.Collections.reverse(inversa);
+        var inicio = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var a = executor.submit(() -> {
+                inicio.await();
+                return primeiraAdmin.escrever(CATEGORIAS + "/ordem", PUT, Map.of("ids", inversa, "versao", versao));
+            });
+            var b = executor.submit(() -> {
+                inicio.await();
+                return segundaAdmin.escrever(CATEGORIAS + "/ordem", PUT, Map.of("ids", ids, "versao", versao));
+            });
+            inicio.countDown();
+            var respostaA = a.get(15, TimeUnit.SECONDS);
+            var respostaB = b.get(15, TimeUnit.SECONDS);
+            assertThat(List.of(respostaA.getStatusCode(), respostaB.getStatusCode())).containsExactlyInAnyOrder(OK, CONFLICT);
+            var atual = primeiraAdmin.ler(CATEGORIAS);
+            assertThat(atual.getHeaders().getFirst("X-Versao-Categorias")).isEqualTo(String.valueOf(versao + 1));
+            assertThat(atual.getBody()).extracting(categoria -> categoria.path("id").asText())
+                    .containsExactlyElementsOf(respostaA.getStatusCode().equals(OK) ? inversa : ids);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private void rejeitarTags(ClienteReceitopedia cliente, List<String> ids, String mensagem) {

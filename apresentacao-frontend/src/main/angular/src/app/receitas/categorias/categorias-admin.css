@@ -1,0 +1,35 @@
+.categoria-arrastavel {
+  background: var(--papel);
+}
+
+.alca-categoria {
+  cursor: grab;
+  touch-action: none;
+}
+
+.alca-categoria:active {
+  cursor: grabbing;
+}
+
+.cdk-drag-preview {
+  border-radius: 0.5rem;
+  box-shadow: 0 0.3rem 1rem rgb(0 0 0 / 25%);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.45;
+  outline: 1px dashed var(--acento);
+  outline-offset: -1px;
+}
+
+.cdk-drag-animating,
+.cdk-drop-list-dragging .categoria-arrastavel:not(.cdk-drag-placeholder) {
+  transition: transform 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdk-drag-animating,
+  .cdk-drop-list-dragging .categoria-arrastavel:not(.cdk-drag-placeholder) {
+    transition: none;
+  }
+}

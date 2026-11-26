@@ -1,0 +1,1 @@
+ALTER TABLE catalogo_categorias ADD COLUMN versao BIGINT NOT NULL DEFAULT 0;

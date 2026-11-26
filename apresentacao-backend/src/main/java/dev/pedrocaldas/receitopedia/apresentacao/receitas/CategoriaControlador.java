@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import dev.pedrocaldas.receitopedia.aplicacao.receitas.CatalogoAlterado;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaDuplicada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaNaoEncontrada;
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaServicoAplicacao;
+import dev.pedrocaldas.receitopedia.aplicacao.receitas.CategoriaRepositorio.Catalogo;
 import dev.pedrocaldas.receitopedia.dominio.receitas.Categoria;
 
 @RestController
@@ -32,8 +34,8 @@ class CategoriaControlador {
     }
 
     @GetMapping
-    List<Categoria> listar() {
-        return servico.listar();
+    ResponseEntity<List<Categoria>> listar() {
+        return resposta(servico.listar());
     }
 
     @PostMapping
@@ -54,8 +56,13 @@ class CategoriaControlador {
     }
 
     @PutMapping("/ordem")
-    List<Categoria> reordenar(@RequestBody Ordem ordem) {
-        return servico.reordenar(ordem.ids());
+    ResponseEntity<List<Categoria>> reordenar(@RequestBody Ordem ordem) {
+        return resposta(servico.reordenar(ordem.ids(), ordem.versao()));
+    }
+
+    private ResponseEntity<List<Categoria>> resposta(Catalogo catalogo) {
+        return ResponseEntity.ok().header("X-Versao-Categorias", Long.toString(catalogo.versao()))
+                .body(catalogo.categorias());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -76,6 +83,6 @@ class CategoriaControlador {
     record Formulario(String nome) {
     }
 
-    record Ordem(List<UUID> ids) {
+    record Ordem(List<UUID> ids, Long versao) {
     }
 }

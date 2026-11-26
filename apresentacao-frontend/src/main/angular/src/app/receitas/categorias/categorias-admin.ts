@@ -1,3 +1,4 @@
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -8,12 +9,14 @@ import { Categoria, CategoriaApi } from './categoria-api';
 
 @Component({
   selector: 'app-categorias-admin',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CdkDrag, CdkDragHandle, CdkDropList],
+  styleUrl: './categorias-admin.css',
   templateUrl: './categorias-admin.html',
 })
 export class CategoriasAdmin implements OnInit {
   private readonly api = inject(CategoriaApi);
   private readonly destroyRef = inject(DestroyRef);
+  private versao = 0;
   protected readonly nome = new FormControl('', { nonNullable: true });
   protected readonly novoNome = new FormControl('', { nonNullable: true });
   protected readonly categorias = signal<Categoria[]>([]);
@@ -33,11 +36,14 @@ export class CategoriasAdmin implements OnInit {
   protected carregar() {
     this.carregando.set(true);
     this.falhaLista.set(false);
-    this.api.listar().pipe(
+    this.api.catalogo().pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.carregando.set(false)),
     ).subscribe({
-      next: (categorias) => this.categorias.set(categorias),
+      next: ({ categorias, versao }) => {
+        this.categorias.set(categorias);
+        this.versao = versao;
+      },
       error: () => this.falhaLista.set(true),
     });
   }
@@ -73,8 +79,8 @@ export class CategoriasAdmin implements OnInit {
   }
 
   protected editar(categoria: Categoria) {
-    this.executar(this.api.editar(categoria.id, this.novoNome.value), (atualizada) => {
-      this.categorias.update((lista) => lista.map((item) => item.id === atualizada.id ? atualizada : item));
+    this.executar(this.api.editar(categoria.id, this.novoNome.value), () => {
+      this.carregar();
       this.cancelarAcao();
       this.feedback.set('Categoria atualizada.');
     }, (erro) => this.falhaAcao.set(mensagemDeErro(erro, 'Não foi possível editar a categoria.')));
@@ -82,24 +88,36 @@ export class CategoriasAdmin implements OnInit {
 
   protected remover(categoria: Categoria) {
     this.executar(this.api.remover(categoria.id), () => {
-      this.categorias.update((lista) => lista.filter((item) => item.id !== categoria.id));
+      this.carregar();
       this.cancelarAcao();
       this.feedback.set('Categoria removida.');
     }, (erro) => this.falhaAcao.set(mensagemDeErro(erro, 'Não foi possível remover a categoria.')));
   }
 
-  protected mover(categoria: Categoria, deslocamento: -1 | 1) {
-    const ids = this.categorias().map(({ id }) => id);
-    const indice = ids.indexOf(categoria.id);
-    const destino = indice + deslocamento;
-    if (indice < 0 || destino < 0 || destino >= ids.length) {
+  protected soltar(evento: CdkDragDrop<Categoria[]>) {
+    this.reordenar(evento.previousIndex, evento.currentIndex);
+  }
+
+  protected moverComTeclado(evento: Event, indice: number, passo: -1 | 1) {
+    evento.preventDefault();
+    this.reordenar(indice, indice + passo);
+  }
+
+  private reordenar(origem: number, destino: number) {
+    const antes = this.categorias();
+    if (this.carregando() || this.salvando() || this.editando() || this.confirmandoRemocao()
+        || origem === destino || destino < 0 || destino >= antes.length) {
       return;
     }
-    [ids[indice], ids[destino]] = [ids[destino], ids[indice]];
-    this.executar(this.api.reordenar(ids), (ordem) => {
-      this.categorias.set(ordem);
-      this.feedback.set(categoria.nome + ' está na posição ' + String(destino + 1) + '.');
+    const depois = [...antes];
+    moveItemInArray(depois, origem, destino);
+    this.categorias.set(depois);
+    this.executar(this.api.reordenar(depois.map(({ id }) => id), this.versao), ({ categorias, versao }) => {
+      this.categorias.set(categorias);
+      this.versao = versao;
+      this.feedback.set(depois[destino].nome + ' está na posição ' + String(destino + 1) + '.');
     }, (erro) => {
+      this.categorias.set(antes);
       this.falhaAcao.set(mensagemDeErro(erro, 'Não foi possível salvar a ordem das categorias.'));
       if (erro.status === 409) {
         this.carregar();

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.pedrocaldas.receitopedia.aplicacao.receitas.CatalogoAlterado;
@@ -27,7 +28,7 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
     @Override
     @Transactional
     public Categoria adicionar(Categoria categoria) {
-        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE).registrarAlteracao();
         long posicao = entidades.createQuery("select coalesce(max(c.posicao), -1L) + 1L from CategoriaJpa c", Long.class)
                 .getSingleResult();
         entidades.persist(new CategoriaJpa(categoria, posicao));
@@ -38,7 +39,7 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
     @Override
     @Transactional
     public Categoria editar(Categoria categoria) {
-        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE).registrarAlteracao();
         carregar(categoria.id()).renomear(categoria);
         confirmarNomeUnico();
         return categoria;
@@ -47,7 +48,7 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
     @Override
     @Transactional
     public void remover(UUID id) {
-        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE).registrarAlteracao();
         var categoria = carregar(id);
         entidades.createNativeQuery("""
                 update receita set versao = versao + 1
@@ -60,8 +61,11 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
 
     @Override
     @Transactional
-    public List<Categoria> reordenar(OrdemCategorias ordem) {
-        CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+    public Catalogo reordenar(OrdemCategorias ordem, long versao) {
+        var estado = CatalogoCategoriasJpa.bloquear(entidades, LockModeType.PESSIMISTIC_WRITE);
+        if (estado.versao() != versao) {
+            throw new CatalogoAlterado();
+        }
         var catalogo = new HashMap<UUID, CategoriaJpa>();
         registros().forEach(categoria -> catalogo.put(categoria.id(), categoria));
         if (!ordem.correspondeAoCatalogo(catalogo.keySet())) {
@@ -71,13 +75,16 @@ class CategoriaRepositorioJpa implements CategoriaRepositorio {
         for (UUID id : ordem.ids()) {
             catalogo.get(id).posicionar(posicao++);
         }
-        return ordem.ids().stream().map(catalogo::get).map(CategoriaJpa::paraDominio).toList();
+        estado.registrarAlteracao();
+        return new Catalogo(ordem.ids().stream().map(catalogo::get).map(CategoriaJpa::paraDominio).toList(),
+                estado.versao());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<Categoria> listar() {
-        return registros().stream().map(CategoriaJpa::paraDominio).toList();
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public Catalogo listar() {
+        long versao = CatalogoCategoriasJpa.bloquear(entidades, LockModeType.NONE).versao();
+        return new Catalogo(registros().stream().map(CategoriaJpa::paraDominio).toList(), versao);
     }
 
     private List<CategoriaJpa> registros() {

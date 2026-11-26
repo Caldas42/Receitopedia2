@@ -13,7 +13,9 @@ public interface CategoriaRepositorio {
 
     void remover(UUID id);
 
-    List<Categoria> reordenar(OrdemCategorias ordem);
+    Catalogo reordenar(OrdemCategorias ordem, long versao);
 
-    List<Categoria> listar();
+    Catalogo listar();
+
+    record Catalogo(List<Categoria> categorias, long versao) {}
 }

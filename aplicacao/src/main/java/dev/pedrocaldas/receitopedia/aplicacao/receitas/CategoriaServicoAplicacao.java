@@ -25,11 +25,14 @@ public class CategoriaServicoAplicacao {
         repositorio.remover(id);
     }
 
-    public List<Categoria> reordenar(List<UUID> ids) {
-        return repositorio.reordenar(new OrdemCategorias(ids));
+    public CategoriaRepositorio.Catalogo reordenar(List<UUID> ids, Long versao) {
+        if (versao == null || versao < 0) {
+            throw new IllegalArgumentException("Informe a versão atual do catálogo de categorias.");
+        }
+        return repositorio.reordenar(new OrdemCategorias(ids), versao);
     }
 
-    public List<Categoria> listar() {
+    public CategoriaRepositorio.Catalogo listar() {
         return repositorio.listar();
     }
 }

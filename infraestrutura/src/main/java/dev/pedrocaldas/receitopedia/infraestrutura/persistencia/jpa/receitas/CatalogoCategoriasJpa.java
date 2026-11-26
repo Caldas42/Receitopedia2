@@ -12,10 +12,20 @@ class CatalogoCategoriasJpa {
     @Id
     private int id;
 
+    private long versao;
+
     protected CatalogoCategoriasJpa() {
     }
 
-    static void bloquear(EntityManager entidades, LockModeType modo) {
-        entidades.find(CatalogoCategoriasJpa.class, 1, modo);
+    long versao() {
+        return versao;
+    }
+
+    void registrarAlteracao() {
+        versao++;
+    }
+
+    static CatalogoCategoriasJpa bloquear(EntityManager entidades, LockModeType modo) {
+        return entidades.find(CatalogoCategoriasJpa.class, 1, modo);
     }
 }
