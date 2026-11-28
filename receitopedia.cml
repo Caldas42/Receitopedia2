@@ -1,43 +1,83 @@
 Domain Receitopedia {
-    Subdomain CadastroEAutenticacao
-    Subdomain GerenciamentoDeReceitas
+    domainVisionStatement = "Compartilhar e descobrir receitas, seguir pessoas e conversar com amigos."
+
+    Subdomain CadastroEAutenticacao {
+        type = GENERIC_SUBDOMAIN
+        domainVisionStatement = "Cadastrar usuários, autenticar sessões e distinguir usuários de administradores da plataforma."
+    }
+
+    Subdomain GerenciamentoDeReceitas {
+        type = CORE_DOMAIN
+        domainVisionStatement = "Publicar receitas com autoria, fotos e categorias e encontrar receitas por título, categoria ou autor."
+    }
+
+    Subdomain RelacionamentosEntrePessoas {
+        type = SUPPORTING_DOMAIN
+        domainVisionStatement = "Encontrar e seguir pessoas. Duas pessoas são amigas quando se seguem mutuamente."
+    }
+
+    Subdomain MensagensEConversas {
+        type = SUPPORTING_DOMAIN
+        domainVisionStatement = "Trocar mensagens diretas entre amigos e conversar em grupos com histórico e registros de leitura."
+    }
 }
 
-ContextMap {
-    contains Contas
-    contains Receitas
+ContextMap ReceitopediaAtual {
+    type = SYSTEM_LANDSCAPE
+    state = AS_IS
+    contains Contas, Receitas, Pessoas, Comunicacao
+
+    Contas [U] -> [D] Receitas : AutoriaDasReceitas
+    Contas [U] -> [D] Pessoas : IdentidadeDasPessoas
+    Contas [U] -> [D] Comunicacao : IdentidadeDosParticipantes
+
+    // A alteração da amizade e a criação ou ativação da DM ocorrem na mesma transação.
+    // Na criação ou ampliação de um grupo, Comunicação consulta os amigos de quem convida.
+    Pessoas [U] -> [D] Comunicacao : AmizadeNasConversas
 }
 
 BoundedContext Contas implements CadastroEAutenticacao {
     Aggregate CadastroDeUsuarios {
+        responsibilities = "Manter e-mail e nome de usuário únicos, sem diferenciar maiúsculas e minúsculas.",
+            "Guardar o hash da senha. Novas contas começam com o papel USER."
+
         Entity Usuario {
             aggregateRoot
 
-            UUID id
+            UUID id key
             String enderecoEmail
             String nomeUsuario
             String senhaHash
-            String papel
+            -Papel papel
+        }
+
+        enum Papel {
+            USER, ADMIN
         }
     }
 }
 
 BoundedContext Receitas implements GerenciamentoDeReceitas {
     Aggregate GerenciamentoDeReceitas {
+        responsibilities = "Exigir título, ingredientes e etapas de preparo. Só o autor pode editar ou remover.",
+            "Manter até cinco fotos em ordem, com a principal na primeira posição, e até cinco categorias sem repetição."
+
         Entity Receita {
             aggregateRoot
 
-            UUID id
+            UUID id key
             long versao
             -DadosReceita dados
+            "Receitas anteriores ao registro de autoria podem ficar sem dono."
             -AutorReceita dono nullable
             -List<FotoReceita> fotos
-            -List<Categoria> categorias
+            "Cada identificador referencia uma categoria do catálogo."
+            List<UUID> categoriaIds
         }
 
         ValueObject DadosReceita {
-            String titulo
-            String descricao nullable
+            String titulo notBlank
+            String descricao
             List<String> ingredientes notEmpty
             List<String> etapas notEmpty
             -TempoPreparo tempoPreparo nullable
@@ -54,16 +94,169 @@ BoundedContext Receitas implements GerenciamentoDeReceitas {
 
         ValueObject FotoReceita {
             UUID id
-            String tipo
+            -TipoFoto tipo
+        }
+
+        enum TipoFoto {
+            JPEG, PNG, WEBP
         }
     }
 
     Aggregate CatalogoDeCategorias {
-        Entity Categoria {
+        responsibilities = "Administradores da plataforma criam, editam, removem e reordenam as categorias.",
+            "O catálogo mantém nomes únicos após normalização e usa a versão para rejeitar reordenações desatualizadas."
+
+        Entity CatalogoCategorias {
             aggregateRoot
 
-            UUID id
+            int id key
+            long versao
+            -List<Categoria> categorias
+        }
+
+        Entity Categoria {
+            UUID id key
             String nome
+            long posicao
+        }
+    }
+}
+
+BoundedContext Pessoas implements RelacionamentosEntrePessoas {
+    Aggregate Seguimentos {
+        responsibilities = "Cada seguimento tem uma direção. Seguidor e seguido são usuários distintos e formam um par único.",
+            "Seguir e deixar de seguir são idempotentes. A amizade é derivada de dois seguimentos recíprocos."
+
+        Entity Seguimento {
+            aggregateRoot
+
+            UUID seguidorId key
+            UUID seguidoId key
+        }
+
+        "Evento seguimento.alterado, registrado quando o seguimento é criado ou removido."
+        DomainEvent SeguimentoAlterado {
+            UUID seguidorId
+            UUID seguidoId
+        }
+    }
+}
+
+BoundedContext Comunicacao implements MensagensEConversas {
+    Aggregate Conversas {
+        responsibilities = "Há uma DM por par de amigos. Ao perderem a reciprocidade, a DM é desativada e preserva seu histórico.",
+            "Grupos têm até 256 participantes e mantêm pelo menos um administrador. Quem convida só adiciona os próprios amigos."
+
+        Entity Conversa {
+            aggregateRoot
+
+            UUID id key
+            -TipoConversa tipo
+            "Nome próprio de uma conversa de grupo."
+            String nome nullable
+            "Par ordenado de usuários de uma DM."
+            -ParDeUsuarios parDm nullable
+            boolean dmAtiva
+            long ultimaSequencia
+            -List<MembroConversa> membros
+        }
+
+        ValueObject ParDeUsuarios {
+            UUID primeiroId
+            UUID segundoId
+        }
+
+        Entity MembroConversa {
+            UUID usuarioId key
+            boolean admin
+            boolean ativo
+        }
+
+        enum TipoConversa {
+            DM, GRUPO
+        }
+
+        "Evento dm.criada, registrado quando a amizade abre a primeira DM do par."
+        DomainEvent DmCriada {
+            UUID conversaId
+        }
+
+        "Evento dm.reativada, registrado quando o par volta a ser amigo e recupera a mesma DM."
+        DomainEvent DmReativada {
+            UUID conversaId
+        }
+
+        "Evento dm.desativada, registrado quando um dos usuários deixa de seguir o outro."
+        DomainEvent DmDesativada {
+            UUID conversaId
+        }
+
+        "Evento conversa.alterada, usado para notificar alterações como leitura, edição e mudanças de membros."
+        DomainEvent ConversaAlterada {
+            UUID conversaId
+            UUID usuarioAfetadoId nullable
+        }
+    }
+
+    Aggregate Mensagens {
+        responsibilities = "Participantes ativos enviam mensagens com até 2.000 caracteres e até quatro imagens. É preciso informar texto ou imagem.",
+            "A sequência é única por conversa. Só o autor pode editar ou apagar em até 15 minutos. O apagamento é lógico.",
+            "Uma mensagem processada fica entregue. Ela fica lida quando todos os outros membros ativos registram a leitura."
+
+        Entity Mensagem {
+            aggregateRoot
+
+            UUID id key
+            UUID conversaId
+            UUID autorId
+            long sequencia
+            String texto
+            Instant enviadaEm
+            long versao
+            boolean editada
+            boolean apagada
+            boolean processada
+            "Calculado a partir do processamento e dos recibos dos membros ativos."
+            -EstadoMensagem estado transient
+            -List<AnexoMensagem> anexos
+            -List<ReciboMensagem> recibos
+        }
+
+        Entity AnexoMensagem {
+            UUID id key
+            -TipoImagemAnexada tipo
+            boolean miniatura
+        }
+
+        Entity ReciboMensagem {
+            UUID usuarioId key
+            Instant entregueEm
+            Instant lidaEm nullable
+        }
+
+        enum TipoImagemAnexada {
+            JPEG, PNG, WEBP
+        }
+
+        enum EstadoMensagem {
+            ENVIADA, ENTREGUE, LIDA
+        }
+
+        "Evento mensagem.enviada, registrado na mesma transação que grava a mensagem."
+        DomainEvent MensagemEnviada {
+            UUID conversaId
+            UUID mensagemId
+        }
+    }
+
+    Aggregate Bloqueios {
+        responsibilities = "Um usuário pode bloquear outro. Um bloqueio em qualquer sentido impede o envio na DM."
+
+        Entity Bloqueio {
+            aggregateRoot
+
+            UUID autorId key
+            UUID alvoId key
         }
     }
 }
