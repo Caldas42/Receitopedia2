@@ -94,7 +94,7 @@ Na raiz do repositório, execute:
 
 ```sh
 mvn clean install
-docker compose -f docker-compose-receitopedia.yml up
+docker compose up
 ```
 
 Abra <http://localhost:8080/receitas>. A API está em `/backend/receitas`,
